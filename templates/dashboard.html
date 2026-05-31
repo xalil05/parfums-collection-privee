@@ -229,21 +229,27 @@
     <!-- CARTE : GÉNÉRER LE VISUEL -->
     <div class="tool-card">
       <div class="card-hd">
-        <h3>🖼️ Visuel WhatsApp</h3>
-        <span style="font-size:.7em;color:#6b6360">1080×1920</span>
+        <h3>🖼️ Générer une image</h3>
+        <span style="font-size:.7em;color:#6b6360" id="formatLabel">WhatsApp Status</span>
       </div>
       <div class="card-bd">
-        <p style="font-size:.8em;color:#a0998e;margin-bottom:14px">
-          Génère le statut WhatsApp avec la liste de tous les parfums disponibles, triés par catégorie (Homme · Femme · Mixte).
+        <p style="font-size:.8em;color:#a0998e;margin-bottom:12px">
+          Choisis un format et génère le visuel avec la liste des parfums disponibles.
         </p>
-        <button class="btn-gold" id="btnGenererVisuel" onclick="genererVisuel()">
-          ✨ Générer le visuel
-        </button>
-        <button class="btn-outline" id="btnTelechargerVisuel" onclick="telechargerVisuel()" style="display:none;margin-left:8px">
-          ⬇ Télécharger
-        </button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          <select id="formatSelect" onchange="changerFormat(this)" style="flex:1;min-width:180px;background:rgba(255,255,255,0.04);border:1px solid rgba(212,175,55,0.15);border-radius:8px;padding:10px 14px;color:#e8e0d4;font-family:Inter,sans-serif;font-size:.85em;outline:none">
+            <option value="">Chargement des formats...</option>
+          </select>
+          <button class="btn-gold" id="btnGenererVisuel" onclick="genererVisuel()" style="white-space:nowrap">
+            ✨ Générer
+          </button>
+          <button class="btn-outline" id="btnTelechargerVisuel" onclick="telechargerVisuel()" style="display:none;white-space:nowrap">
+            ⬇ Télécharger
+          </button>
+        </div>
+        <div id="formatInfo" style="font-size:.75em;color:#6b6360;margin-bottom:10px;min-height:20px"></div>
         <div class="preview-placeholder" id="visuelPreview">
-          <span>Cliquez sur "Générer" pour créer l'image</span>
+          <span>Choisis un format et clique sur Générer</span>
         </div>
       </div>
     </div>
@@ -579,33 +585,64 @@ function toast(msg, type) {
   setTimeout(() => t.remove(), 3500);
 }
 
-// === OUTILS : GÉNÉRATION VISUEL ===
+// === FORMATS IMAGE ===
+let formatsData = null;
+let formatActuel = 'whatsapp-status';
+
+async function chargerFormats() {
+  try {
+    const res = await fetch('/api/formats');
+    formatsData = await res.json();
+    const sel = document.getElementById('formatSelect');
+    sel.innerHTML = Object.entries(formatsData).map(([key, f]) => 
+      `<option value="${key}">${f.name} (${f.w}×${f.h} · ${f.ratio})</option>`
+    ).join('');
+    formatActuel = 'whatsapp-status';
+    sel.value = 'whatsapp-status';
+    afficherInfoFormat('whatsapp-status');
+  } catch (e) {
+    console.error('Erreur chargement formats:', e);
+  }
+}
+
+function changerFormat(sel) {
+  formatActuel = sel.value;
+  afficherInfoFormat(formatActuel);
+  document.getElementById('formatLabel').textContent = formatsData[formatActuel]?.name || '';
+}
+
+function afficherInfoFormat(key) {
+  const f = formatsData?.[key];
+  if (!f) { document.getElementById('formatInfo').textContent = ''; return; }
+  document.getElementById('formatInfo').textContent = `${f.desc} · ${f.w}×${f.h}px (${f.ratio})`;
+}
+
 async function genererVisuel() {
   const btn = document.getElementById('btnGenererVisuel');
   const preview = document.getElementById('visuelPreview');
   const dlBtn = document.getElementById('btnTelechargerVisuel');
   btn.disabled = true;
   btn.innerHTML = '<span class="gen-loading"></span> Génération...';
-  preview.innerHTML = '<span class="gen-loading"></span> Génération du visuel...';
+  preview.innerHTML = '<span class="gen-loading"></span> Génération...';
 
   try {
-    const res = await fetch('/api/generate-visuel-preview');
+    const res = await fetch(`/api/generate-visuel-preview?format=${formatActuel}`);
     const data = await res.json();
-    if (data.error) { toast('❌ ' + data.error, 'error'); btn.disabled = false; btn.innerHTML = '✨ Générer le visuel'; preview.innerHTML = '<span>Erreur — voir console</span>'; return; }
+    if (data.error) { toast('❌ ' + data.error, 'error'); btn.disabled = false; btn.innerHTML = '✨ Générer'; preview.innerHTML = '<span>Erreur</span>'; return; }
     
     preview.innerHTML = `<img src="/api/visual-status?t=${Date.now()}" alt="Visuel généré">`;
     dlBtn.style.display = 'inline-block';
-    toast('✅ Visuel généré avec succès !', 'success');
+    toast(`✅ ${formatsData[formatActuel]?.name || 'Image'} générée !`, 'success');
   } catch (e) {
     toast('❌ Erreur : ' + e.message, 'error');
     preview.innerHTML = '<span>Erreur réseau</span>';
   }
   btn.disabled = false;
-  btn.innerHTML = '✨ Générer le visuel';
+  btn.innerHTML = '✨ Générer';
 }
 
 function telechargerVisuel() {
-  window.open('/api/visual-status?t=' + Date.now(), '_blank');
+  window.open(`/api/generate-visuel?format=${formatActuel}`, '_blank');
 }
 
 // === OUTILS : PROMPTS IA ===
@@ -685,6 +722,7 @@ function copierPrompt(index) {
 // === INIT ===
 chargerStats();
 chargerParfums();
+chargerFormats();
 chargerPrompts();
 </script>
 </body>

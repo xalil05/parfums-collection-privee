@@ -277,22 +277,24 @@ def api_archive():
 
 @app.route("/api/generate-visuel")
 def api_generate_visuel():
-    """Génère le visuel WhatsApp et retourne l'image."""
+    """Génère le visuel dans le format choisi et retourne l'image."""
+    fmt = request.args.get("format", "whatsapp-status")
     try:
         from img_gen import generate as generate_image
-        path = generate_image(str(DIR / "whatsapp-status.jpg"))
-        return send_from_directory(str(DIR), "whatsapp-status.jpg", as_attachment=True, download_name="whatsapp-status.jpg")
+        path = generate_image(str(DIR / "whatsapp-status.jpg"), format_name=fmt)
+        return send_from_directory(str(DIR), "whatsapp-status.jpg", as_attachment=True, download_name=f"collection-privee-{fmt}.jpg")
     except Exception as e:
         return jsonify({"error": f"Erreur génération visuel : {e}"}), 500
 
 
 @app.route("/api/generate-visuel-preview")
 def api_generate_visuel_preview():
-    """Génère le visuel et retourne juste le chemin (pour l'UI)."""
+    """Génère le visuel dans le format choisi et retourne le chemin."""
+    fmt = request.args.get("format", "whatsapp-status")
     try:
         from img_gen import generate as generate_image
-        path = generate_image(str(DIR / "whatsapp-status.jpg"))
-        return jsonify({"success": True, "path": "/api/visual-status"})
+        path = generate_image(str(DIR / "whatsapp-status.jpg"), format_name=fmt)
+        return jsonify({"success": True, "path": "/api/visual-status", "format": fmt})
     except Exception as e:
         return jsonify({"error": f"Erreur génération visuel : {e}"}), 500
 
@@ -301,6 +303,22 @@ def api_generate_visuel_preview():
 def api_visual_status():
     """Retourne l'image générée (statique)."""
     return send_from_directory(str(DIR), "whatsapp-status.jpg", mimetype="image/jpeg")
+
+
+@app.route("/api/formats")
+def api_formats():
+    """Liste des formats d'image disponibles."""
+    from img_gen import FORMATS
+    data = {}
+    for key, f in FORMATS.items():
+        data[key] = {
+            "name": f["name"],
+            "w": f["w"],
+            "h": f["h"],
+            "ratio": f["ratio"],
+            "desc": f["desc"],
+        }
+    return jsonify(data)
 
 
 @app.route("/api/prompts")
