@@ -111,6 +111,35 @@
     .toast.success{background:#2ed573;color:#0a0a0f}
     .toast.error{background:#ff4757;color:#fff}
     
+    /* ===== OUTILS CRÉATION ===== */
+    .tools-section{padding:0 32px 40px;max-width:1400px;margin:0 auto}
+    .tools-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    @media(max-width:900px){.tools-grid{grid-template-columns:1fr}}
+    .tool-card{border:1px solid rgba(212,175,55,0.12);border-radius:12px;overflow:hidden;background:linear-gradient(145deg,#1a1a2e,#16213e)}
+    .tool-card .card-hd{padding:20px 24px;border-bottom:1px solid rgba(212,175,55,0.08);display:flex;justify-content:space-between;align-items:center}
+    .tool-card .card-hd h3{font-family:'Playfair Display',serif;color:#d4af37;font-size:1.1em}
+    .tool-card .card-bd{padding:20px 24px}
+    .btn-gold{background:#d4af37;border:none;color:#0a0a0f;padding:10px 24px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85em;transition:all .3s}
+    .btn-gold:hover{background:#e4bf47;transform:translateY(-1px)}
+    .btn-gold:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .btn-outline{background:transparent;border:1px solid rgba(212,175,55,0.3);color:#d4af37;padding:10px 24px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85em;transition:all .3s}
+    .btn-outline:hover{background:rgba(212,175,55,0.1)}
+    .preview-placeholder{width:100%;aspect-ratio:9/16;max-height:340px;background:rgba(255,255,255,0.02);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#6b6360;font-size:.8em;border:1px dashed rgba(212,175,55,0.1);overflow:hidden;margin-top:12px}
+    .preview-placeholder img{width:100%;height:100%;object-fit:contain}
+    .prompt-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+    .prompt-tab{background:transparent;border:1px solid rgba(212,175,55,0.12);color:#6b6360;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.75em;transition:all .2s}
+    .prompt-tab:hover,.prompt-tab.active{border-color:#d4af37;color:#d4af37;background:rgba(212,175,55,0.08)}
+    .prompt-content{display:none}
+    .prompt-content.active{display:block}
+    .prompt-box{background:rgba(0,0,0,0.3);border:1px solid rgba(212,175,55,0.1);border-radius:8px;padding:14px;font-size:.8em;line-height:1.5;color:#c0b8a8;position:relative;max-height:200px;overflow-y:auto;word-break:break-word}
+    .prompt-box .copy-btn{position:absolute;top:8px;right:8px;background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.2);color:#d4af37;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:.7em;transition:all .2s}
+    .prompt-box .copy-btn:hover{background:rgba(212,175,55,0.25)}
+    .prompt-extra{display:flex;gap:12px;margin-top:10px;font-size:.75em;color:#6b6360;flex-wrap:wrap}
+    .prompt-extra span{background:rgba(255,255,255,0.03);padding:4px 10px;border-radius:4px}
+    .prompt-cat-label{padding:2px 8px;border-radius:4px;font-size:.7em;font-weight:600;margin-left:6px}
+    .gen-loading{display:inline-block;width:14px;height:14px;border:2px solid rgba(212,175,55,0.3);border-top-color:#d4af37;border-radius:50%;animation:spin .6s linear infinite;margin-right:8px;vertical-align:middle}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    
     /* ===== RESPONSIVE ===== */
     @media(max-width:768px){
       .header{padding:16px}
@@ -190,6 +219,52 @@
     <tbody id="tableBody"></tbody>
   </table>
 </div>
+
+<!-- ===== OUTILS CRÉATION ===== -->
+<section class="tools-section" id="toolsSection">
+  <div class="sec" style="margin:30px 0 15px;padding:0">
+    <h2 style="font-family:'Playfair Display',serif;font-size:1.3em;color:#d4af37;border-bottom:1px solid rgba(212,175,55,0.2);padding-bottom:8px">✦ Outils de création</h2>
+  </div>
+  <div class="tools-grid">
+    <!-- CARTE : GÉNÉRER LE VISUEL -->
+    <div class="tool-card">
+      <div class="card-hd">
+        <h3>🖼️ Visuel WhatsApp</h3>
+        <span style="font-size:.7em;color:#6b6360">1080×1920</span>
+      </div>
+      <div class="card-bd">
+        <p style="font-size:.8em;color:#a0998e;margin-bottom:14px">
+          Génère le statut WhatsApp avec la liste de tous les parfums disponibles, triés par catégorie (Homme · Femme · Mixte).
+        </p>
+        <button class="btn-gold" id="btnGenererVisuel" onclick="genererVisuel()">
+          ✨ Générer le visuel
+        </button>
+        <button class="btn-outline" id="btnTelechargerVisuel" onclick="telechargerVisuel()" style="display:none;margin-left:8px">
+          ⬇ Télécharger
+        </button>
+        <div class="preview-placeholder" id="visuelPreview">
+          <span>Cliquez sur "Générer" pour créer l'image</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARTE : PROMPTS IA -->
+    <div class="tool-card">
+      <div class="card-hd">
+        <h3>🤖 Prompts IA</h3>
+        <span style="font-size:.7em;color:#6b6360">Prêts à coller</span>
+      </div>
+      <div class="card-bd">
+        <p style="font-size:.8em;color:#a0998e;margin-bottom:14px">
+          Prompts optimisés pour chaque IA. Collez-les dans Google ImageFX, Midjourney, DALL·E ou Stable Diffusion.
+        </p>
+        <div class="prompt-tabs" id="promptTabs"></div>
+        <div id="promptContents"></div>
+        <div id="promptExtra" class="prompt-extra"></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ===== MODAL AJOUTER/MODIFIER ===== -->
 <div class="modal-overlay" id="modalParfum">
@@ -504,9 +579,113 @@ function toast(msg, type) {
   setTimeout(() => t.remove(), 3500);
 }
 
+// === OUTILS : GÉNÉRATION VISUEL ===
+async function genererVisuel() {
+  const btn = document.getElementById('btnGenererVisuel');
+  const preview = document.getElementById('visuelPreview');
+  const dlBtn = document.getElementById('btnTelechargerVisuel');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="gen-loading"></span> Génération...';
+  preview.innerHTML = '<span class="gen-loading"></span> Génération du visuel...';
+
+  try {
+    const res = await fetch('/api/generate-visuel-preview');
+    const data = await res.json();
+    if (data.error) { toast('❌ ' + data.error, 'error'); btn.disabled = false; btn.innerHTML = '✨ Générer le visuel'; preview.innerHTML = '<span>Erreur — voir console</span>'; return; }
+    
+    preview.innerHTML = `<img src="/api/visual-status?t=${Date.now()}" alt="Visuel généré">`;
+    dlBtn.style.display = 'inline-block';
+    toast('✅ Visuel généré avec succès !', 'success');
+  } catch (e) {
+    toast('❌ Erreur : ' + e.message, 'error');
+    preview.innerHTML = '<span>Erreur réseau</span>';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '✨ Générer le visuel';
+}
+
+function telechargerVisuel() {
+  window.open('/api/visual-status?t=' + Date.now(), '_blank');
+}
+
+// === OUTILS : PROMPTS IA ===
+let promptsData = null;
+
+async function chargerPrompts() {
+  try {
+    const res = await fetch('/api/prompts');
+    promptsData = await res.json();
+    genererOngletsPrompts();
+  } catch (e) {
+    console.error('Erreur chargement prompts:', e);
+  }
+}
+
+function genererOngletsPrompts() {
+  if (!promptsData || !promptsData.generaux) return;
+  const tabs = document.getElementById('promptTabs');
+  const contents = document.getElementById('promptContents');
+  const extra = document.getElementById('promptExtra');
+  
+  const allItems = [
+    ...promptsData.whatsapp_status.map(p => ({...p, groupe: 'whatsapp'})),
+    ...promptsData.generaux.map(p => ({...p, groupe: 'general'})),
+    ...promptsData.par_categorie.map(p => ({...p, groupe: 'categorie', prompt: p.prompt})),
+  ];
+  
+  tabs.innerHTML = allItems.map((p, i) => 
+    `<button class="prompt-tab${i === 0 ? ' active' : ''}" onclick="switchPrompt(${i}, this)">${p.plateforme || p.categorie}</button>`
+  ).join('');
+  
+  contents.innerHTML = allItems.map((p, i) => {
+    const label = p.groupe === 'categorie' ? `<span class="prompt-cat-label" style="background:rgba(212,175,55,0.15);color:#d4af37">${p.marques ? p.marques.join(' · ') : ''}</span>` : '';
+    return `<div class="prompt-content${i === 0 ? ' active' : ''}" id="promptContent${i}">
+      <div class="prompt-box">
+        <button class="copy-btn" onclick="copierPrompt(${i})">📋 Copier</button>
+        ${p.prompt}
+      </div>
+      ${label}
+    </div>`;
+  }).join('');
+  
+  // Extra info
+  const s = promptsData.stats;
+  extra.innerHTML = `
+    <span>🧴 ${s.total_parfums} parfums</span>
+    <span>📦 ${s.total_stock} unités</span>
+    <span>🏷️ ${s.marques.slice(0,3).join(' · ')}</span>
+    <span>🌸 ${s.notes_dominantes.slice(0,3).join(' · ')}</span>
+  `;
+}
+
+function switchPrompt(index, btn) {
+  document.querySelectorAll('.prompt-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.prompt-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('promptContent' + index).classList.add('active');
+}
+
+function copierPrompt(index) {
+  const content = document.getElementById('promptContent' + index);
+  const promptText = content.querySelector('.prompt-box').textContent.replace('📋 Copier', '').trim();
+  navigator.clipboard.writeText(promptText).then(() => {
+    toast('📋 Prompt copié !', 'success');
+  }).catch(() => {
+    // Fallback pour les vieux navigateurs
+    const ta = document.createElement('textarea');
+    ta.value = promptText;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('📋 Prompt copié !', 'success');
+  });
+}
+
 // === INIT ===
 chargerStats();
 chargerParfums();
+chargerPrompts();
 </script>
 </body>
 </html>

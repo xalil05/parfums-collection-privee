@@ -272,6 +272,136 @@ def api_archive():
 
 
 # ============================================================
+#  GÉNÉRATION VISUEL + PROMPTS IA
+# ============================================================
+
+@app.route("/api/generate-visuel")
+def api_generate_visuel():
+    """Génère le visuel WhatsApp et retourne l'image."""
+    try:
+        from img_gen import generate as generate_image
+        path = generate_image(str(DIR / "whatsapp-status.jpg"))
+        return send_from_directory(str(DIR), "whatsapp-status.jpg", as_attachment=True, download_name="whatsapp-status.jpg")
+    except Exception as e:
+        return jsonify({"error": f"Erreur génération visuel : {e}"}), 500
+
+
+@app.route("/api/generate-visuel-preview")
+def api_generate_visuel_preview():
+    """Génère le visuel et retourne juste le chemin (pour l'UI)."""
+    try:
+        from img_gen import generate as generate_image
+        path = generate_image(str(DIR / "whatsapp-status.jpg"))
+        return jsonify({"success": True, "path": "/api/visual-status"})
+    except Exception as e:
+        return jsonify({"error": f"Erreur génération visuel : {e}"}), 500
+
+
+@app.route("/api/visual-status")
+def api_visual_status():
+    """Retourne l'image générée (statique)."""
+    return send_from_directory(str(DIR), "whatsapp-status.jpg", mimetype="image/jpeg")
+
+
+@app.route("/api/prompts")
+def api_prompts():
+    """Génère des prompts IA pour générateurs d'images."""
+    db = load_db()
+    parfums = db.get("parfums", [])
+    dispos = [p for p in parfums if p["stock"] > 0]
+    hommes = [p for p in dispos if p["categorie"] == "Homme"]
+    femmes = [p for p in dispos if p["categorie"] == "Femme"]
+    mixtes = [p for p in dispos if p["categorie"] == "Mixte"]
+
+    # Extraire les notes dominantes
+    toutes_notes = []
+    for p in dispos:
+        for n in p.get("notes", "").split(","):
+            n = n.strip()
+            if n and n not in toutes_notes:
+                toutes_notes.append(n)
+    notes_top = toutes_notes[:5] if toutes_notes else ["Vanille", "Ambre", "Oud"]
+
+    marques = list(set(p["marque"] for p in dispos))
+    top_marques = marques[:5]
+
+    def _prompt_vibe(categorie, items, notes):
+        items_str = " · ".join(p["nom"] for p in items[:5])
+        notes_str = ", ".join(notes)
+        return {
+            "categorie": categorie,
+            "count": len(items),
+            "exemples": items_str,
+            "notes": notes_str,
+        }
+
+    vibes = [
+        _prompt_vibe("Homme", hommes, ["Cuir", "Bois", "Ambre", "Poivre", "Cèdre"]),
+        _prompt_vibe("Femme", femmes, ["Vanille", "Rose", "Fleur d'oranger", "Tubéreuse", "Patchouli"]),
+        _prompt_vibe("Mixte / Unisexe", mixtes, ["Oud", "Ambre", "Musc", "Safran", "Rose"]),
+    ]
+
+    # Prompts dédiés
+    prompts = {
+        "generaux": [
+            {
+                "plateforme": "Google ImageFX / Imagen",
+                "style": "Photorealistic — Fond luxueux",
+                "prompt": f"Ultra-realistic perfume collection background, dark mahogany and amber tones, elegant gold arabesque geometric patterns, subtle oud smoke wisps, scattered gold dust particles, velvet texture, warm ambient candlelight, sophisticated luxury fragrance presentation, 8K photorealistic commercial photography, negative space in center for text overlay, no text, no bottles",
+            },
+            {
+                "plateforme": "Midjourney",
+                "style": "Artistique — Ambiance orientale",
+                "prompt": f"Luxury perfume boutique interior, dark navy and gold color scheme, opulent arabesque patterns, warm amber lighting, floating gold particles, velvet drapes, premium fragrance collection display, soft cinematic bokeh, rich textures, elegant and sophisticated mood --ar 9:16 --style raw --v 6",
+            },
+            {
+                "plateforme": "DALL·E 3",
+                "style": "Moderne minimaliste",
+                "prompt": f"Minimalist luxury perfume background, dark gradient from navy to black, subtle gold foil geometric accents, elegant minimal composition, soft warm glow from below, premium cosmetic advertising style, clean and sophisticated, negative space for text, 16:9 aspect ratio",
+            },
+            {
+                "plateforme": "Stable Diffusion / FLUX",
+                "style": "Sombre & Dramatique",
+                "prompt": f"(masterpiece:1.2), (photorealistic:1.3), dark luxury perfume collection, mahogany wood texture, gold leaf accents, smoke wisps, amber glow, velvet background, sophisticated fragrance advertising, 8K, dramatic lighting, rich deep colors, negative space centered, no text",
+            },
+        ],
+        "par_categorie": [
+            {
+                "categorie": "Homme 💼",
+                "prompt": f"Dark and sophisticated men's perfume collection, rich wood textures, leather accents, amber and tobacco tones, black and gold color scheme, masculine elegance, premium fragrance advertising, 8K photorealistic, dramatic chiaroscuro lighting, luxury lifestyle photography, centered composition for text overlay, no perfume bottles",
+                "marques": top_marques[:3],
+            },
+            {
+                "categorie": "Femme 👗",
+                "prompt": f"Elegant women's luxury perfume collection, soft pink and rose gold tones, floral accents, vanilla and gourmand warmth, silk and velvet textures, feminine sophistication, premium beauty editorial style, soft dreamy lighting, 8K commercial photography, delicate and refined atmosphere, centered composition for text",
+                "marques": top_marques[:3],
+            },
+            {
+                "categorie": "Mixte / Unisexe 🔀",
+                "prompt": f"Modern unisex luxury fragrance collection, amber and oud tones, warm golden hour lighting, contemporary minimal aesthetic, marble and brass textures, sophisticated and inclusive vibe, premium editorial perfume photography, 8K, balanced masculine and feminine elements, centered negative space for text overlay",
+                "marques": top_marques[:3],
+            },
+        ],
+        "whatsapp_status": [
+            {
+                "plateforme": "Fond pour visuel WhatsApp (9:16)",
+                "style": "Luxueux sombre",
+                "prompt": f"Luxury perfume background for WhatsApp status, 9:16 vertical format, dark navy to black gradient, elegant golden geometric lines, subtle sparkle particles, warm amber glow at center, premium fragrance advertising style, velvet texture, 8K, sophisticated and exclusive mood, large empty space in center for perfume list text overlay, no perfume bottles, no text",
+            },
+        ],
+        "vibes": vibes,
+        "stats": {
+            "total_parfums": len(dispos),
+            "total_stock": sum(p["stock"] for p in dispos),
+            "marques": top_marques,
+            "notes_dominantes": notes_top if notes_top else ["Vanille", "Ambre"],
+        },
+    }
+
+    return jsonify(prompts)
+
+
+# ============================================================
 #  LANCEMENT
 # ============================================================
 
