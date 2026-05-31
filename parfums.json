@@ -1,10 +1,24 @@
 {
   "_meta": {
     "titre": "PARFUMS COLLECTION PRIVÉE",
-    "date_maj": "2026-05-25T21:07:33",
-    "derniere_modif": "Mise à jour par Omar"
+    "date_maj": "2026-05-31 20:46",
+    "derniere_modif": "Mise à jour automatique",
+    "total_parfums": 20,
+    "total_stock": 46,
+    "total_archive": 7
   },
   "parfums": [
+    {
+      "id": "bleu-de-chanel",
+      "nom": "Bleu de Chanel",
+      "marque": "Chanel",
+      "type": "EDP",
+      "ml": 100,
+      "stock": 2,
+      "notes": "Agrumes, Gingembre, Cèdre, Encens",
+      "categorie": "Homme",
+      "prix": 0
+    },
     {
       "id": "scandal-homme",
       "nom": "Scandal Homme",
@@ -13,157 +27,8 @@
       "ml": 100,
       "stock": 2,
       "notes": "Fougère, Ambré, Épicé",
-      "categorie": "Homme"
-    },
-    {
-      "id": "sauvage-dior",
-      "nom": "Sauvage",
-      "marque": "Dior",
-      "type": "EDT",
-      "ml": 100,
-      "stock": 0,
-      "notes": "Agrumes, Ambré, Boisé",
-      "categorie": "Homme"
-    },
-    {
-      "id": "ultra-male",
-      "nom": "Ultra Male",
-      "marque": "Jean Paul Gaultier",
-      "type": "EDT",
-      "ml": 75,
-      "stock": 1,
-      "notes": "Fruité, Cannelle, Vanille",
-      "categorie": "Homme"
-    },
-    {
-      "id": "oud-bouquet",
-      "nom": "Oud Bouquet",
-      "marque": "Lattafa",
-      "type": "EDP",
-      "ml": 100,
-      "stock": 3,
-      "notes": "Oud, Rose, Épices, Cuir",
-      "categorie": "Mixte"
-    },
-    {
-      "id": "baccarat-rouge",
-      "nom": "Baccarat Rouge 540",
-      "marque": "Maison Francis Kurkdjian",
-      "type": "EDP",
-      "ml": 70,
-      "stock": 1,
-      "notes": "Ambre, Safran, Cèdre",
-      "categorie": "Mixte"
-    },
-    {
-      "id": "yara-rose",
-      "nom": "Yara Rose",
-      "marque": "Lattafa",
-      "type": "EDP",
-      "ml": 100,
-      "stock": 1,
-      "notes": "Rose, Vanille, Fruits rouges",
-      "categorie": "Femme"
-    },
-    {
-      "id": "black-opium",
-      "nom": "Black Opium",
-      "marque": "Yves Saint Laurent",
-      "type": "EDP",
-      "ml": 50,
-      "stock": 1,
-      "notes": "Café, Vanille, Fleur d'oranger",
-      "categorie": "Femme"
-    },
-    {
-      "id": "my-way",
-      "nom": "My Way",
-      "marque": "Giorgio Armani",
-      "type": "EDP",
-      "ml": 50,
-      "stock": 10,
-      "notes": "Fleur d'oranger, Tubéreuse, Vanille",
-      "categorie": "Femme"
-    },
-    {
-      "id": "interdit-givenchy",
-      "nom": "L'Interdit",
-      "marque": "Givenchy",
-      "type": "EDT",
-      "ml": 50,
-      "stock": 1,
-      "notes": "Fleur d'oranger, Tubéreuse, Patchouli",
-      "categorie": "Femme"
-    },
-    {
-      "id": "scandal-femme",
-      "nom": "Scandal",
-      "marque": "Jean Paul Gaultier",
-      "type": "EDP",
-      "ml": 50,
-      "stock": 2,
-      "notes": "Miel, Fleur d'oranger, Gardénia",
-      "categorie": "Femme"
-    },
-    {
-      "id": "coconut-passion",
-      "nom": "Coconut Passion",
-      "marque": "Victoria's Secret",
-      "type": "EDP",
-      "ml": 50,
-      "stock": 1,
-      "notes": "Noix de coco, Vanille, Fleurs",
-      "categorie": "Femme"
-    },
-    {
-      "id": "gentleman-givenchy",
-      "nom": "Gentleman",
-      "marque": "Givenchy",
-      "type": "EDP",
-      "ml": 60,
-      "stock": 1,
-      "notes": "Iris, Cuir, Cèdre, Poivre",
-      "categorie": "Homme"
-    },
-    {
-      "id": "la-vie-est-belle",
-      "nom": "La Vie Est Belle",
-      "marque": "Lancôme",
-      "type": "EDP",
-      "ml": 50,
-      "stock": 1,
-      "notes": "Iris, Vanille, Poire, Patchouli",
-      "categorie": "Femme"
-    },
-    {
-      "id": "jadore-dior",
-      "nom": "J'adore",
-      "marque": "Dior",
-      "type": "EDP",
-      "ml": 50,
-      "stock": 1,
-      "notes": "Fleurs blanches, Ylang-ylang, Rose",
-      "categorie": "Femme"
-    },
-    {
-      "id": "candy-love",
-      "nom": "Candy Love",
-      "marque": "Lattafa",
-      "type": "EDP",
-      "ml": 100,
-      "stock": 1,
-      "notes": "Gourmand, Fruité, Vanille, Bonbon",
-      "categorie": "Femme"
-    },
-    {
-      "id": "scandale-femme-2",
-      "nom": "Scandale",
-      "marque": "Jean Paul Gaultier",
-      "type": "EDP",
-      "ml": 50,
-      "stock": 2,
-      "notes": "Miel, Fleur d'oranger, Gardénia",
-      "categorie": "Femme"
+      "categorie": "Homme",
+      "prix": 0
     },
     {
       "id": "ultra-male-2",
@@ -173,47 +38,8 @@
       "ml": 75,
       "stock": 2,
       "notes": "Fruité, Cannelle, Vanille, Menthe",
-      "categorie": "Homme"
-    },
-    {
-      "id": "bleu-de-chanel-2",
-      "nom": "Bleu de Chanel",
-      "marque": "Chanel",
-      "type": "EDP",
-      "ml": 100,
-      "stock": 2,
-      "notes": "Agrumes, Gingembre, Cèdre, Encens",
-      "categorie": "Homme"
-    },
-    {
-      "id": "oud2",
-      "nom": "Oud 2",
-      "marque": "Lattafa",
-      "type": "EDP",
-      "ml": 100,
-      "stock": 2,
-      "notes": "Oud, Bois, Cuir, Épices",
-      "categorie": "Mixte"
-    },
-    {
-      "id": "tobaco-vanille-tf",
-      "nom": "Tobacco Vanille",
-      "marque": "Tom Ford",
-      "type": "EDP",
-      "ml": 50,
-      "stock": 1,
-      "notes": "Tabac, Vanille, Cacao, Fruits secs",
-      "categorie": "Homme"
-    },
-    {
-      "id": "sultan-9",
-      "nom": "Sultan",
-      "marque": "Lattafa",
-      "type": "EDP",
-      "ml": 100,
-      "stock": 9,
-      "notes": "Oud, Rose, Ambre, Musc",
-      "categorie": "Mixte"
+      "categorie": "Homme",
+      "prix": 0
     },
     {
       "id": "212-vip-men",
@@ -223,7 +49,208 @@
       "ml": 100,
       "stock": 1,
       "notes": "Rhum, Tabac, Fève tonka, Amande",
-      "categorie": "Homme"
+      "categorie": "Homme",
+      "prix": 0
+    },
+    {
+      "id": "gentleman-givenchy",
+      "nom": "Gentleman",
+      "marque": "Givenchy",
+      "type": "EDP",
+      "ml": 60,
+      "stock": 1,
+      "notes": "Iris, Cuir, Cèdre, Poivre",
+      "categorie": "Homme",
+      "prix": 0
+    },
+    {
+      "id": "ultra-male",
+      "nom": "Ultra Male",
+      "marque": "Jean Paul Gaultier",
+      "type": "EDT",
+      "ml": 75,
+      "stock": 1,
+      "notes": "Fruité, Cannelle, Vanille",
+      "categorie": "Homme",
+      "prix": 0
+    },
+    {
+      "id": "tobaco-vanille-tf",
+      "nom": "Tobacco Vanille",
+      "marque": "Tom Ford",
+      "type": "EDP",
+      "ml": 50,
+      "stock": 1,
+      "notes": "Tabac, Vanille, Cacao, Fruits secs",
+      "categorie": "Homme",
+      "prix": 0
+    },
+    {
+      "id": "my-way",
+      "nom": "My Way",
+      "marque": "Giorgio Armani",
+      "type": "EDP",
+      "ml": 50,
+      "stock": 10,
+      "notes": "Fleur d'oranger, Tubéreuse, Vanille",
+      "categorie": "Femme",
+      "prix": 0
+    },
+    {
+      "id": "scandal-femme",
+      "nom": "Scandal",
+      "marque": "Jean Paul Gaultier",
+      "type": "EDP",
+      "ml": 50,
+      "stock": 4,
+      "notes": "Miel, Fleur d'oranger, Gardénia",
+      "categorie": "Femme",
+      "prix": 0
+    },
+    {
+      "id": "jadore-dior",
+      "nom": "J'adore",
+      "marque": "Dior",
+      "type": "EDP",
+      "ml": 50,
+      "stock": 1,
+      "notes": "Fleurs blanches, Ylang-ylang, Rose",
+      "categorie": "Femme",
+      "prix": 0
+    },
+    {
+      "id": "interdit-givenchy",
+      "nom": "L'Interdit",
+      "marque": "Givenchy",
+      "type": "EDT",
+      "ml": 50,
+      "stock": 1,
+      "notes": "Fleur d'oranger, Tubéreuse, Patchouli",
+      "categorie": "Femme",
+      "prix": 0
+    },
+    {
+      "id": "la-vie-est-belle",
+      "nom": "La Vie Est Belle",
+      "marque": "Lancôme",
+      "type": "EDP",
+      "ml": 50,
+      "stock": 1,
+      "notes": "Iris, Vanille, Poire, Patchouli",
+      "categorie": "Femme",
+      "prix": 0
+    },
+    {
+      "id": "yara-rose",
+      "nom": "Yara Rose",
+      "marque": "Lattafa",
+      "type": "EDP",
+      "ml": 100,
+      "stock": 1,
+      "notes": "Rose, Vanille, Fruits rouges",
+      "categorie": "Femme",
+      "prix": 0
+    },
+    {
+      "id": "candy-love",
+      "nom": "Candy Love",
+      "marque": "Lattafa",
+      "type": "EDP",
+      "ml": 100,
+      "stock": 1,
+      "notes": "Gourmand, Fruité, Vanille, Bonbon",
+      "categorie": "Femme",
+      "prix": 0
+    },
+    {
+      "id": "coconut-passion",
+      "nom": "Coconut Passion",
+      "marque": "Victoria's Secret",
+      "type": "EDP",
+      "ml": 50,
+      "stock": 1,
+      "notes": "Noix de coco, Vanille, Fleurs",
+      "categorie": "Femme",
+      "prix": 0
+    },
+    {
+      "id": "black-opium",
+      "nom": "Black Opium",
+      "marque": "Yves Saint Laurent",
+      "type": "EDP",
+      "ml": 50,
+      "stock": 1,
+      "notes": "Café, Vanille, Fleur d'oranger",
+      "categorie": "Femme",
+      "prix": 0
+    },
+    {
+      "id": "sultan-9",
+      "nom": "Sultan",
+      "marque": "Lattafa",
+      "type": "EDP",
+      "ml": 100,
+      "stock": 9,
+      "notes": "Oud, Rose, Ambre, Musc",
+      "categorie": "Mixte",
+      "prix": 0
+    },
+    {
+      "id": "oud-bouquet",
+      "nom": "Oud Bouquet",
+      "marque": "Lattafa",
+      "type": "EDP",
+      "ml": 100,
+      "stock": 3,
+      "notes": "Oud, Rose, Épices, Cuir",
+      "categorie": "Mixte",
+      "prix": 0
+    },
+    {
+      "id": "oud2",
+      "nom": "Oud 2",
+      "marque": "Lattafa",
+      "type": "EDP",
+      "ml": 100,
+      "stock": 2,
+      "notes": "Oud, Bois, Cuir, Épices",
+      "categorie": "Mixte",
+      "prix": 0
+    },
+    {
+      "id": "baccarat-rouge",
+      "nom": "Baccarat Rouge 540",
+      "marque": "Maison Francis Kurkdjian",
+      "type": "EDP",
+      "ml": 70,
+      "stock": 1,
+      "notes": "Ambre, Safran, Cèdre",
+      "categorie": "Mixte",
+      "prix": 0
+    }
+  ],
+  "archive": [
+    {
+      "id": "sauvage-dior",
+      "nom": "Sauvage",
+      "marque": "Dior",
+      "type": "EDT",
+      "ml": 100,
+      "stock": 0,
+      "notes": "Agrumes, Ambré, Boisé",
+      "categorie": "Homme",
+      "raison_archive": "Stock épuisé"
+    },
+    {
+      "id": "scandale-femme-2",
+      "nom": "Scandale",
+      "marque": "Jean Paul Gaultier",
+      "type": "EDP",
+      "ml": 50,
+      "stock": 2,
+      "notes": "Miel, Fleur d'oranger, Gardénia",
+      "categorie": "Femme",
+      "raison_archive": "Doublon fusionné avec scandal-femme"
     },
     {
       "id": "hypnotique-poison",
@@ -233,7 +260,8 @@
       "ml": 50,
       "stock": 0,
       "notes": "Vanille, Amande, Santal, Epices",
-      "categorie": "Femme"
+      "categorie": "Femme",
+      "raison_archive": "Stock épuisé"
     },
     {
       "id": "invictus",
@@ -243,7 +271,8 @@
       "ml": 100,
       "stock": 0,
       "notes": "Agrumes, Ambre gris, Laurier",
-      "categorie": "Homme"
+      "categorie": "Homme",
+      "raison_archive": "Stock épuisé"
     },
     {
       "id": "one-million-lucky",
@@ -253,7 +282,8 @@
       "ml": 100,
       "stock": 0,
       "notes": "Prune, Noisette, Miel, Cedre",
-      "categorie": "Homme"
+      "categorie": "Homme",
+      "raison_archive": "Stock épuisé"
     },
     {
       "id": "libre-intense",
@@ -263,7 +293,8 @@
       "ml": 50,
       "stock": 0,
       "notes": "Lavande, Vanille, Ambre",
-      "categorie": "Femme"
+      "categorie": "Femme",
+      "raison_archive": "Stock épuisé"
     },
     {
       "id": "kayali-juice",
@@ -273,7 +304,8 @@
       "ml": 50,
       "stock": 0,
       "notes": "Fruite, Gourmand, Vanille",
-      "categorie": "Femme"
+      "categorie": "Femme",
+      "raison_archive": "Stock épuisé"
     }
   ]
 }

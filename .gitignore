@@ -1,5 +1,23 @@
-# Archives
-*.zip
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
 
-# Backups
+# Editors
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Généré automatiquement
+catalogue.html
+whatsapp-status.jpg
+
+# Archives & Backups
+*.zip
 *backup*
+parfums-2*.json
