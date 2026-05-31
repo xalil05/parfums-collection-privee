@@ -1,10 +1,10 @@
 {
   "_meta": {
     "titre": "PARFUMS COLLECTION PRIVÉE",
-    "date_maj": "2026-05-31 22:44",
-    "derniere_modif": "Dashboard · 22:44",
+    "date_maj": "2026-05-31 23:27",
+    "derniere_modif": "Dashboard · 23:27",
     "total_parfums": 20,
-    "total_stock": 46,
+    "total_stock": 45,
     "total_archive": 7
   },
   "parfums": [
@@ -91,7 +91,7 @@
       "marque": "Giorgio Armani",
       "type": "EDP",
       "ml": 50,
-      "stock": 10,
+      "stock": 9,
       "notes": "Fleur d'oranger, Tubéreuse, Vanille",
       "categorie": "Femme",
       "prix": 0

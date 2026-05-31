@@ -1,6 +1,6 @@
 # Collection Privée — Système de Gestion des Parfums
 
-Système de gestion de stock pour la vente de parfums **Collection Privée** (Genova, Italia).
+Système de gestion de stock pour la vente de parfums **Collection Privée**.
 
 ## 🚀 Démarrage rapide
 
@@ -15,7 +15,7 @@ Cela affiche le résumé des stocks, génère le **catalogue HTML** et le **visu
 
 ```bash
 python3 app.py
-# → http://127.0.0.1:5000
+# → http://localhost:5000
 ```
 
 Pour un accès réseau local :
@@ -122,7 +122,11 @@ Le visuel est optimisé pour **WhatsApp Status** (1080×1920 px, format 9:16).
 
 - Python ≥ 3.8
 - Pillow ≥ 10.0 (génération d'images)
-- Polices DejaVu (système, installées par défaut sur Ubuntu/Debian)
+- Flask ≥ 3.0 (dashboard web)
+
+Les polices DejaVu sont incluses par défaut dans la plupart des distributions Linux.
+En cas d'absence, installer avec : `apt install fonts-dejavu-core` (Debian/Ubuntu)
+ou `dnf install dejavu-fonts` (Fedora) ou `pacman -S ttf-dejavu` (Arch).
 
 ## 🔗 Catalogue en ligne
 
