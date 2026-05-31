@@ -1,8 +1,8 @@
 {
   "_meta": {
     "titre": "PARFUMS COLLECTION PRIVÉE",
-    "date_maj": "2026-05-31 20:46",
-    "derniere_modif": "Mise à jour automatique",
+    "date_maj": "2026-05-31 22:30",
+    "derniere_modif": "Dashboard · 22:30",
     "total_parfums": 20,
     "total_stock": 46,
     "total_archive": 7
@@ -306,6 +306,19 @@
       "notes": "Fruite, Gourmand, Vanille",
       "categorie": "Femme",
       "raison_archive": "Stock épuisé"
+    },
+    {
+      "id": "test-dashboard",
+      "nom": "Test Dashboard",
+      "marque": "Testeur",
+      "type": "EDP",
+      "ml": 100,
+      "stock": 3,
+      "prix": 65.0,
+      "notes": "Prix mis à jour",
+      "categorie": "Homme",
+      "raison_archive": "Supprimé via dashboard",
+      "date_archive": "2026-05-31T22:29:56.409061"
     }
   ]
 }

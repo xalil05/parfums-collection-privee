@@ -11,21 +11,45 @@ python3 main.py
 
 Cela affiche le résumé des stocks, génère le **catalogue HTML** et le **visuel WhatsApp**.
 
+### Dashboard Web
+
+```bash
+python3 app.py
+# → http://127.0.0.1:5000
+```
+
+Pour un accès réseau local :
+```bash
+python3 app.py --host 0.0.0.0 --port 8080
+```
+
+Le dashboard permet de :
+- 📊 Voir les statistiques en temps réel (stocks, valeur, ruptures)
+- ➕ Ajouter des parfums via formulaire
+- ✏️ Modifier les parfums existants
+- 🗑️ Archiver les parfums (pas de perte de données)
+- ➖ Vendre / ➕ Réapprovisionner en 1 clic
+- 🔍 Rechercher et filtrer par catégorie
+- ⚠️ Alertes visuelles pour les stocks bas et ruptures
+
 ## 📁 Structure du projet
 
 ```
-├── db.py              # Couche d'accès aux données (CRUD JSON)
-├── cli.py             # Interface en ligne de commande
-├── html_gen.py        # Génération du catalogue HTML
-├── img_gen.py         # Génération du visuel WhatsApp (catégories séparées)
-├── main.py            # Point d'entrée principal
-├── update.py          # Alias rétrocompatible → cli.py
-├── update-visuel.py   # Générateur du visuel (moderne ou legacy)
-├── parfums.json       # Base de données (stock, prix, statut)
-├── requirements.txt   # Dépendances Python
+├── app.py              # Serveur Flask (dashboard web)
+├── db.py               # Couche d'accès aux données (CRUD JSON)
+├── cli.py              # Interface en ligne de commande
+├── html_gen.py         # Génération du catalogue HTML
+├── img_gen.py          # Génération du visuel WhatsApp (catégories séparées)
+├── main.py             # Point d'entrée principal (CLI)
+├── update.py           # Alias rétrocompatible → cli.py
+├── update-visuel.py    # Générateur du visuel (moderne ou legacy)
+├── parfums.json        # Base de données (stock, prix, statut)
+├── requirements.txt    # Dépendances Python
 ├── template-reference.jpg  # Template legacy pour fond d'image
-├── catalogue.html     # Catalogue HTML généré (gitignored)
-└── whatsapp-status.jpg     # Visuel généré (gitignored)
+├── templates/          # Templates HTML du dashboard
+│   └── dashboard.html  #   → Interface web de gestion
+├── catalogue.html      # Catalogue HTML généré (gitignored)
+└── whatsapp-status.jpg # Visuel généré (gitignored)
 ```
 
 ## 📋 Commandes
