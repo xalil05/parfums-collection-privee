@@ -133,7 +133,6 @@ def generate(catalogue_path: str = OUTPUT) -> str:
   <meta property="og:title" content="Collection Privée — Catalogue">
   <meta property="og:description" content="Parfumerie de Luxe · {len(parfums)} parfums disponibles">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://xalil05.github.io/parfums-collection-privee/">
   <meta name="theme-color" content="#0a0a0f">
   <title>Collection Privée — Parfumerie de Luxe</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧴</text></svg>">

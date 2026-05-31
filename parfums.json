@@ -1,8 +1,8 @@
 {
   "_meta": {
     "titre": "PARFUMS COLLECTION PRIVÉE",
-    "date_maj": "2026-05-31 22:30",
-    "derniere_modif": "Dashboard · 22:30",
+    "date_maj": "2026-05-31 22:44",
+    "derniere_modif": "Dashboard · 22:44",
     "total_parfums": 20,
     "total_stock": 46,
     "total_archive": 7
@@ -17,7 +17,7 @@
       "stock": 2,
       "notes": "Agrumes, Gingembre, Cèdre, Encens",
       "categorie": "Homme",
-      "prix": 0
+      "prix": 0.0
     },
     {
       "id": "scandal-homme",

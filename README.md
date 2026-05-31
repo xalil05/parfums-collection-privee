@@ -127,7 +127,6 @@ Le visuel est optimisé pour **WhatsApp Status** (1080×1920 px, format 9:16).
 ## 🔗 Catalogue en ligne
 
 Le catalogue HTML peut être hébergé sur GitHub Pages.
-URL : `https://xalil05.github.io/parfums-collection-privee/`
 
 ## 📄 Licence
 
