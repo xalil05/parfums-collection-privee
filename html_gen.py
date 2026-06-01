@@ -66,7 +66,10 @@ def _css() -> str:
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Inter,sans-serif;background:#0a0a0f;color:#e8e0d4}
 .header{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);padding:40px 20px;text-align:center;border-bottom:1px solid rgba(212,175,55,0.2)}
-.header h1{font-family:'Playfair Display',serif;font-size:2.8em;color:#d4af37;letter-spacing:4px}
+.header-bg-img{background-size:cover;background-position:center;background-blend-mode:overlay;padding:60px 20px;text-align:center;border-bottom:1px solid rgba(212,175,55,0.2);position:relative}
+.header-bg-img::before{content:'';position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(10,10,15,0.55);z-index:0}
+.header-bg-img>*{position:relative;z-index:1}
+.header h1,.header-bg-img h1{font-family:'Playfair Display',serif;font-size:2.8em;color:#d4af37;letter-spacing:4px}
 .header .sub{font-size:.9em;color:#a0998e;margin-top:8px;letter-spacing:6px;text-transform:uppercase}
 .stats{display:flex;justify-content:center;gap:40px;padding:20px;background:rgba(26,26,46,0.8);border-bottom:1px solid rgba(212,175,55,0.1);flex-wrap:wrap}
 .s-item{text-align:center}
@@ -101,8 +104,14 @@ footer{text-align:center;padding:20px;color:#6b6360;font-size:.8em}
 """
 
 
-def generate(catalogue_path: str = OUTPUT) -> str:
-    """Génère le fichier catalogue.html et retourne son chemin."""
+def generate(catalogue_path: str = OUTPUT, preset_image: str = "") -> str:
+    """
+    Génère le fichier catalogue.html.
+
+    Args:
+        catalogue_path: Chemin de sortie
+        preset_image: Chemin vers une image de fond pour le header (ex: bg-rideau-marbre.jpg)
+    """
     db = load_db()
     parfums = db["parfums"]
     meta = db.get("_meta", {})
@@ -140,7 +149,7 @@ def generate(catalogue_path: str = OUTPUT) -> str:
   <style>{_css()}</style>
 </head>
 <body>
-  <div class="header">
+  <div class="{'header-bg-img' if preset_image else 'header'}"{' style="background-image:url(' + os.path.basename(preset_image) + ')"' if preset_image else ''}>
     <h1>✦ COLLECTION PRIVÉE ✦</h1>
     <div class="sub">Parfumerie de Luxe — Catalogue</div>
   </div>
