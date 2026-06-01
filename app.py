@@ -277,11 +277,13 @@ def api_archive():
 
 @app.route("/api/generate-visuel")
 def api_generate_visuel():
-    """Génère le visuel dans le format choisi et retourne l'image."""
+    """Génère le visuel dans le format choisi + modèle IA choisi, retourne l'image."""
     fmt = request.args.get("format", "whatsapp-status")
+    model = request.args.get("model", "pillow")
+    prompt = request.args.get("prompt", "")
     try:
         from img_gen import generate as generate_image
-        path = generate_image(str(DIR / "whatsapp-status.jpg"), format_name=fmt)
+        path = generate_image(str(DIR / "whatsapp-status.jpg"), format_name=fmt, model=model, ai_prompt=prompt)
         return send_from_directory(str(DIR), "whatsapp-status.jpg", as_attachment=True, download_name=f"collection-privee-{fmt}.jpg")
     except Exception as e:
         return jsonify({"error": f"Erreur génération visuel : {e}"}), 500
@@ -289,12 +291,14 @@ def api_generate_visuel():
 
 @app.route("/api/generate-visuel-preview")
 def api_generate_visuel_preview():
-    """Génère le visuel dans le format choisi et retourne le chemin."""
+    """Génère le visuel dans le format choisi + modèle IA, retourne le chemin."""
     fmt = request.args.get("format", "whatsapp-status")
+    model = request.args.get("model", "pillow")
+    prompt = request.args.get("prompt", "")
     try:
         from img_gen import generate as generate_image
-        path = generate_image(str(DIR / "whatsapp-status.jpg"), format_name=fmt)
-        return jsonify({"success": True, "path": "/api/visual-status", "format": fmt})
+        path = generate_image(str(DIR / "whatsapp-status.jpg"), format_name=fmt, model=model, ai_prompt=prompt)
+        return jsonify({"success": True, "path": "/api/visual-status", "format": fmt, "model": model})
     except Exception as e:
         return jsonify({"error": f"Erreur génération visuel : {e}"}), 500
 
@@ -319,6 +323,13 @@ def api_formats():
             "desc": f["desc"],
         }
     return jsonify(data)
+
+
+@app.route("/api/models")
+def api_models():
+    """Liste des modèles IA disponibles."""
+    from img_gen import MODELS
+    return jsonify(MODELS)
 
 
 @app.route("/api/prompts")

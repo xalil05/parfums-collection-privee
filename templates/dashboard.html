@@ -86,11 +86,14 @@
       </div>
       <div class="card-bd">
         <p style="font-size:.8em;color:#a0998e;margin-bottom:12px">
-          Choisis un format et génère le visuel avec la liste des parfums disponibles.
+          Choisis un format, un modèle IA et génère le visuel avec la liste des parfums disponibles.
         </p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-          <select id="formatSelect" onchange="changerFormat(this)" style="flex:1;min-width:180px;background:rgba(255,255,255,0.04);border:1px solid rgba(212,175,55,0.15);border-radius:8px;padding:10px 14px;color:#e8e0d4;font-family:Inter,sans-serif;font-size:.85em;outline:none">
-            <option value="">Chargement des formats...</option>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+          <select id="formatSelect" onchange="changerFormat(this)" style="flex:1;min-width:160px;background:rgba(255,255,255,0.04);border:1px solid rgba(212,175,55,0.15);border-radius:8px;padding:10px 14px;color:#e8e0d4;font-family:Inter,sans-serif;font-size:.85em;outline:none">
+            <option value="">Chargement...</option>
+          </select>
+          <select id="modelSelect" onchange="changerModele(this)" style="flex:1;min-width:140px;background:rgba(255,255,255,0.04);border:1px solid rgba(212,175,55,0.15);border-radius:8px;padding:10px 14px;color:#e8e0d4;font-family:Inter,sans-serif;font-size:.85em;outline:none">
+            <option value="">Modèles...</option>
           </select>
           <button class="btn-gold" id="btnGenererVisuel" onclick="genererVisuel()" style="white-space:nowrap">
             ✨ Générer
@@ -98,6 +101,9 @@
           <button class="btn-outline" id="btnTelechargerVisuel" onclick="telechargerVisuel()" style="display:none;white-space:nowrap">
             ⬇ Télécharger
           </button>
+        </div>
+        <div id="aiPromptWrap" style="display:none;margin-bottom:8px">
+          <textarea id="aiPromptInput" placeholder="Prompt personnalisé pour l'IA (optionnel, laisse vide pour auto)" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(212,175,55,0.15);border-radius:8px;padding:10px 14px;color:#e8e0d4;font-family:Inter,sans-serif;font-size:.8em;outline:none;resize:vertical;min-height:40px" rows="2"></textarea>
         </div>
         <div id="formatInfo" style="font-size:.75em;color:#6b6360;margin-bottom:10px;min-height:20px"></div>
         <div class="preview-placeholder" id="visuelPreview">
@@ -469,6 +475,49 @@ function afficherInfoFormat(key) {
   document.getElementById('formatInfo').textContent = `${f.desc} · ${f.w}×${f.h}px (${f.ratio})`;
 }
 
+// === MODÈLES IA ===
+let modelsData = null;
+let modelActuel = 'pillow';
+
+async function chargerModeles() {
+  try {
+    const res = await fetch('/api/models');
+    modelsData = await res.json();
+    const sel = document.getElementById('modelSelect');
+    sel.innerHTML = Object.entries(modelsData).map(([key, m]) =>
+      `<option value="${key}">${m.name}</option>`
+    ).join('');
+    modelActuel = 'pillow';
+    sel.value = 'pillow';
+    afficherInfoModele('pillow');
+  } catch (e) {
+    console.error('Erreur chargement modèles:', e);
+  }
+}
+
+function changerModele(sel) {
+  modelActuel = sel.value;
+  afficherInfoModele(modelActuel);
+  // Afficher le champ prompt si IA, cacher si Pillow
+  const wrap = document.getElementById('aiPromptWrap');
+  wrap.style.display = (modelActuel === 'pillow') ? 'none' : 'block';
+}
+
+function afficherInfoModele(key) {
+  const m = modelsData?.[key];
+  const el = document.getElementById('modelLabel') || document.createElement('span');
+  el.id = 'modelLabel';
+  el.style.cssText = 'font-size:.7em;color:#6b6360';
+  el.textContent = m ? m.desc : '';
+  const existing = document.querySelector('.card-hd .model-label');
+  if (!existing) {
+    document.querySelector('.card-hd').appendChild(el);
+  } else {
+    existing.textContent = m ? m.desc : '';
+    existing.className = 'model-label';
+  }
+}
+
 async function genererVisuel() {
   const btn = document.getElementById('btnGenererVisuel');
   const preview = document.getElementById('visuelPreview');
@@ -477,14 +526,22 @@ async function genererVisuel() {
   btn.innerHTML = '<span class="gen-loading"></span> Génération...';
   preview.innerHTML = '<span class="gen-loading"></span> Génération...';
 
+  // Build URL with format + model + optional prompt
+  let url = `/api/generate-visuel-preview?format=${formatActuel}&model=${modelActuel}`;
+  const promptInput = document.getElementById('aiPromptInput');
+  if (promptInput && promptInput.value.trim()) {
+    url += `&prompt=${encodeURIComponent(promptInput.value.trim())}`;
+  }
+
   try {
-    const res = await fetch(`/api/generate-visuel-preview?format=${formatActuel}`);
+    const res = await fetch(url);
     const data = await res.json();
     if (data.error) { toast('❌ ' + data.error, 'error'); btn.disabled = false; btn.innerHTML = '✨ Générer'; preview.innerHTML = '<span>Erreur</span>'; return; }
     
     preview.innerHTML = `<img src="/api/visual-status?t=${Date.now()}" alt="Visuel généré">`;
     dlBtn.style.display = 'inline-block';
-    toast(`✅ ${formatsData[formatActuel]?.name || 'Image'} générée !`, 'success');
+    const modelName = modelsData?.[modelActuel]?.name || modelActuel;
+    toast(`✅ ${formatsData[formatActuel]?.name || 'Image'} (${modelName}) générée !`, 'success');
   } catch (e) {
     toast('❌ Erreur : ' + e.message, 'error');
     preview.innerHTML = '<span>Erreur réseau</span>';
@@ -494,7 +551,12 @@ async function genererVisuel() {
 }
 
 function telechargerVisuel() {
-  window.open(`/api/generate-visuel?format=${formatActuel}`, '_blank');
+  let url = `/api/generate-visuel?format=${formatActuel}&model=${modelActuel}`;
+  const promptInput = document.getElementById('aiPromptInput');
+  if (promptInput && promptInput.value.trim()) {
+    url += `&prompt=${encodeURIComponent(promptInput.value.trim())}`;
+  }
+  window.open(url, '_blank');
 }
 
 // === OUTILS : PROMPTS IA ===
@@ -575,6 +637,7 @@ function copierPrompt(index) {
 chargerStats();
 chargerParfums();
 chargerFormats();
+chargerModeles();
 chargerPrompts();
 </script>
 </body>

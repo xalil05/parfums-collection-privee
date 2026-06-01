@@ -16,6 +16,8 @@ Thumbs.db
 # Généré automatiquement
 catalogue.html
 whatsapp-status.jpg
+.cache_bg.png
+ai_config.json
 
 # Archives & Backups
 *.zip
