@@ -17,7 +17,8 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file
+import io
 
 # --- Configuration ---
 DIR = Path(__file__).parent.resolve()
@@ -327,16 +328,50 @@ def api_formats():
 
 @app.route("/api/models")
 def api_models():
-    """Liste des modèles IA disponibles."""
-    from img_gen import MODELS, CUSTOM_BG_PATH
-    data = dict(MODELS)
-    # Ajouter info si un custom background est uploadé
+    """Liste des modèles IA + presets disponibles."""
+    from img_gen import MODELS, PRESET_BACKGROUNDS
+    data = {}
+    for key, m in MODELS.items():
+        entry = {
+            "name": m["name"],
+            "desc": m["desc"],
+            "icon": m.get("icon", "🤖"),
+            "preset": m.get("preset", False),
+        }
+        if key in PRESET_BACKGROUNDS:
+            entry["brightness_hint"] = PRESET_BACKGROUNDS[key].get("brightness_hint", 128)
+            entry["thumbnail"] = f"/api/bg-thumbnail/{key}"
+        data[key] = entry
+
+    # Info custom background
+    from img_gen import CUSTOM_BG_PATH
     if os.path.exists(CUSTOM_BG_PATH):
         data["custom"]["has_bg"] = True
         data["custom"]["bg_path"] = "/api/custom-background"
     else:
         data["custom"]["has_bg"] = False
     return jsonify(data)
+
+
+@app.route("/api/bg-thumbnail/<preset_key>")
+def api_bg_thumbnail(preset_key: str):
+    """Retourne une vignette (200px) d'un preset background."""
+    from img_gen import PRESET_BACKGROUNDS
+    preset = PRESET_BACKGROUNDS.get(preset_key)
+    if not preset:
+        return jsonify({"error": "Preset non trouvé"}), 404
+    path = preset.get("path", "")
+    if not os.path.exists(path):
+        return jsonify({"error": "Fichier non trouvé"}), 404
+    try:
+        img = Image.open(path)
+        img.thumbnail((200, 200), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, "JPEG", quality=80)
+        buf.seek(0)
+        return send_file(buf, mimetype="image/jpeg")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/upload-background", methods=["POST"])

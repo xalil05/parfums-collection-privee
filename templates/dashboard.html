@@ -113,7 +113,8 @@
           </div>
           <div id="customBgPreview" style="margin-top:8px;font-size:.75em;color:#6b6360"></div>
         </div>
-        <div id="formatInfo" style="font-size:.75em;color:#6b6360;margin-bottom:10px;min-height:20px"></div>
+        <div id="formatInfo" style="font-size:.75em;color:#6b6360;margin-bottom:6px;min-height:20px"></div>
+        <div id="modelInfo" style="margin-bottom:10px;min-height:20px"></div>
         <div class="preview-placeholder" id="visuelPreview">
           <span>Choisis un format et clique sur Générer</span>
         </div>
@@ -493,7 +494,7 @@ async function chargerModeles() {
     modelsData = await res.json();
     const sel = document.getElementById('modelSelect');
     sel.innerHTML = Object.entries(modelsData).map(([key, m]) =>
-      `<option value="${key}">${m.name}</option>`
+      `<option value="${key}" data-preset="${m.preset || false}">${m.icon || '🤖'} ${m.name}</option>`
     ).join('');
     modelActuel = 'pillow';
     sel.value = 'pillow';
@@ -506,15 +507,31 @@ async function chargerModeles() {
 function changerModele(sel) {
   modelActuel = sel.value;
   afficherInfoModele(modelActuel);
-  // Afficher le champ prompt si IA, cacher si Pillow
+  // Afficher le champ prompt si IA, cacher si Pillow/preset/custom
+  const isAI = !['pillow', 'custom'].includes(modelActuel) && !modelsData[modelActuel]?.preset;
   const promptWrap = document.getElementById('aiPromptWrap');
-  promptWrap.style.display = (modelActuel === 'pillow') ? 'none' : (modelActuel === 'custom' ? 'none' : 'block');
+  promptWrap.style.display = isAI ? 'block' : 'none';
   // Afficher l'upload si custom
   const bgWrap = document.getElementById('customBgWrap');
   bgWrap.style.display = (modelActuel === 'custom') ? 'block' : 'none';
   if (modelActuel === 'custom') {
     verifierFond();
   }
+}
+
+function afficherInfoModele(key) {
+  const m = modelsData?.[key];
+  const infoEl = document.getElementById('modelInfo');
+  if (!m) { if (infoEl) infoEl.innerHTML = ''; return; }
+  
+  let html = `<span style="font-size:.75em;color:#a0998e">${m.icon} <strong>${m.name}</strong> — ${m.desc}</span>`;
+  
+  // Afficher la vignette si c'est un preset
+  if (m.preset && m.thumbnail) {
+    html += `<div style="margin-top:8px"><img src="${m.thumbnail}?t=${Date.now()}" alt="${m.name}" style="max-width:100%;max-height:120px;border-radius:8px;border:1px solid rgba(212,175,55,0.2);object-fit:cover"></div>`;
+  }
+  
+  if (infoEl) infoEl.innerHTML = html;
 }
 
 async function verifierFond() {
@@ -525,15 +542,16 @@ async function verifierFond() {
     const preview = document.getElementById('customBgPreview');
     const delBtn = document.getElementById('btnDeleteBg');
     if (custom.has_bg) {
-      preview.innerHTML = `<span style="color:#2ed573">✅ Fond personnalisé chargé</span>`;
+      preview.innerHTML = '<span style="color:#2ed573">✅ Fond personnalisé chargé</span>';
       delBtn.style.display = 'inline-block';
     } else {
-      preview.innerHTML = `<span style="color:#ffa502">⚠️ Aucun fond uploadé. Choisis une image et clique sur Upload.</span>`;
+      preview.innerHTML = '<span style="color:#ffa502">⚠️ Aucun fond uploadé. Choisis une image et clique sur Upload.</span>';
       delBtn.style.display = 'none';
     }
   } catch (e) {
     console.error('Erreur vérification fond:', e);
   }
+}
 }
 
 async function uploaderFond() {
@@ -565,21 +583,6 @@ async function supprimerFond() {
     verifierFond();
   } catch (e) {
     toast('❌ Erreur: ' + e.message, 'error');
-  }
-}
-
-function afficherInfoModele(key) {
-  const m = modelsData?.[key];
-  const el = document.getElementById('modelLabel') || document.createElement('span');
-  el.id = 'modelLabel';
-  el.style.cssText = 'font-size:.7em;color:#6b6360';
-  el.textContent = m ? m.desc : '';
-  const existing = document.querySelector('.card-hd .model-label');
-  if (!existing) {
-    document.querySelector('.card-hd').appendChild(el);
-  } else {
-    existing.textContent = m ? m.desc : '';
-    existing.className = 'model-label';
   }
 }
 

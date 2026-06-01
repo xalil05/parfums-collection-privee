@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
 Génération d'images — Parfums Collection Privée.
-Deux modes :
-  - Pillow : dessin 100% manuel (mode "pillow", défaut)
+Modes :
+  - Pillow : dessin 100% manuel (fond dégradé)
+  - Presets : fonds pré-enregistrés (rideau-marbre, livre-velours, etc.)
+  - Custom : upload ton propre fond
   - IA : fond généré par IA + overlay texte
 
-Moteur de layout dynamique : les polices, colonnes et espacements
-s'adaptent automatiquement aux dimensions du format choisi.
+La luminosité du fond est détectée automatiquement pour garantir
+la lisibilité du texte (overlay adaptatif, couleur texte adaptée).
 """
 
-import json, os, datetime, math, io
+import json, os, datetime, math
 from typing import Optional
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageStat
 
 from db import load_db, Database, Parfum
 
@@ -19,9 +21,9 @@ DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT = os.path.join(DIR, "whatsapp-status.jpg")
 
 # ============================================================
-#  CREDENTIALS IA (chargés depuis ai_config.json)
+#  CREDENTIALS IA
 # ============================================================
-_AI_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai_config.json")
+_AI_CONFIG_PATH = os.path.join(DIR, "ai_config.json")
 _CLOUDFLARE_ACCOUNT = ""
 _CLOUDFLARE_TOKEN = ""
 _HF_TOKEN = ""
@@ -42,31 +44,43 @@ def _load_credentials():
 
 _load_credentials()
 
-MODELS = {
-    "pillow": {"name": "Pillow (dessin manuel)", "desc": "Pas d'IA, texte sur fond dégradé"},
-    "custom": {"name": "Mon fond", "desc": "Utilise ton propre fond (upload depuis le dashboard)"},
-    "cloudflare": {"name": "Cloudflare SDXL", "desc": "IA gratuite, ~10-20 img/jour, bonne qualité"},
-    "huggingface": {"name": "Hugging Face FLUX", "desc": "IA gratuite, FLUX.1-schnell, excellente qualité"},
-    "pollinations": {"name": "Pollinations", "desc": "IA gratuite, illimité, qualité standard"},
+# ============================================================
+#  FONDS PRÉ-ENREGISTRÉS (PRESETS)
+# ============================================================
+
+PRESET_BACKGROUNDS = {
+    "bg-rideau-marbre": {
+        "name": "Rideau noir + Marbre doré",
+        "path": os.path.join(DIR, "bg-rideau-marbre.jpg"),
+        "desc": "Rideau velouté noir à gauche, marbre blanc avec motifs dorés à droite",
+        "brightness_hint": 205,  # Centre lumineux → overlay fort
+    },
+    "bg-livre-velours": {
+        "name": "Livre ancien + Velours rouge",
+        "path": os.path.join(DIR, "bg-livre-velours.jpg"),
+        "desc": "Livre ancien doré, velours rouge et or, bougies, ambiance chaleureuse",
+        "brightness_hint": 44,   # Très sombre → overlay léger
+    },
 }
 
 CUSTOM_BG_PATH = os.path.join(DIR, "custom-bg.jpg")
 
 
 # ============================================================
-#  FORMATS DISPONIBLES
+#  MODÈLES DISPONIBLES (inclut les presets)
 # ============================================================
-FORMATS = {
-    "whatsapp-status":  {"name": "WhatsApp Status", "w": 1080, "h": 1920, "ratio": "9:16",  "desc": "Status WhatsApp et stories Instagram"},
-    "instagram-square": {"name": "Instagram Carré",  "w": 1080, "h": 1080, "ratio": "1:1",  "desc": "Publication Instagram feed"},
-    "instagram-story":  {"name": "Instagram Story",  "w": 1080, "h": 1920, "ratio": "9:16",  "desc": "Story Instagram"},
-    "facebook-post":    {"name": "Facebook Post",    "w": 1200, "h": 630,  "ratio": "~2:1", "desc": "Partage Facebook"},
-    "twitter-banner":   {"name": "X Banner",         "w": 1500, "h": 500,  "ratio": "3:1",  "desc": "Bannière X / Twitter"},
-    "linkedin-post":    {"name": "LinkedIn Post",    "w": 1200, "h": 627,  "ratio": "~1.9:1", "desc": "Publication LinkedIn"},
-    "pinterest-pin":    {"name": "Pinterest Pin",    "w": 1000, "h": 1500, "ratio": "2:3",  "desc": "Pin Pinterest"},
-    "youtube-thumbnail":{"name": "YouTube Miniature", "w": 1280, "h": 720,  "ratio": "16:9", "desc": "Miniature YouTube"},
-    "og-card":          {"name": "OG Card",          "w": 1200, "h": 675,  "ratio": "16:9", "desc": "Aperçu lien Open Graph"},
+
+MODELS = {
+    "pillow": {"name": "Pillow (dessin manuel)", "desc": "Pas d'IA, texte sur fond dégradé", "icon": "🎨"},
+    "custom": {"name": "Mon fond", "desc": "Utilise ton propre fond (upload depuis le dashboard)", "icon": "📁"},
+    "cloudflare": {"name": "Cloudflare SDXL", "desc": "IA gratuite, ~10-20 img/jour, bonne qualité", "icon": "☁️"},
+    "huggingface": {"name": "Hugging Face FLUX", "desc": "IA gratuite, FLUX.1-schnell, excellente qualité", "icon": "🤗"},
+    "pollinations": {"name": "Pollinations", "desc": "IA gratuite, illimité, qualité standard", "icon": "🎲"},
+    # Presets ajoutés dynamiquement
 }
+# Ajouter les presets comme modèles
+for key, p in PRESET_BACKGROUNDS.items():
+    MODELS[key] = {"name": p["name"], "desc": p["desc"], "icon": "🖼️", "preset": True, "path": p["path"]}
 
 
 # ============================================================
@@ -74,7 +88,6 @@ FORMATS = {
 # ============================================================
 
 def _find_font(name: str, size: int) -> ImageFont.FreeTypeFont:
-    """Trouve une police avec fallback multi-distro."""
     candidates = {
         "Serif-Bold": [
             "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
@@ -106,6 +119,96 @@ def _find_font(name: str, size: int) -> ImageFont.FreeTypeFont:
 
 
 # ============================================================
+#  DÉTECTION DE LUMINOSITÉ
+# ============================================================
+
+def _detect_brightness(img_path: str, brightness_hint: Optional[int] = None) -> float:
+    """
+    Analyse la luminosité moyenne d'une image dans la zone centrale
+    (là où le texte sera affiché).
+    Retourne 0-255.
+    """
+    if brightness_hint is not None:
+        return brightness_hint
+
+    try:
+        img = Image.open(img_path).convert("RGB")
+        w, h = img.size
+        # Échantillonner le centre (50% de l'image)
+        cx, cy = w // 2, h // 2
+        box = img.crop((cx - w // 4, cy - h // 4, cx + w // 4, cy + h // 4))
+        stat = ImageStat.Stat(box)
+        # Luminosité relative L = 0.299R + 0.587G + 0.114B
+        avg = sum(stat.mean[i] * w for i, w in enumerate([0.299, 0.587, 0.114]))
+        return avg
+    except Exception:
+        return 128  # Valeur neutre par défaut
+
+
+def _calc_overlay_params(brightness: float) -> dict:
+    """
+    Calcule l'intensité de l'overlay et la couleur du texte
+    selon la luminosité du fond.
+    
+    brightness: 0 (noir) → 255 (blanc)
+    
+    Retourne:
+      overlay_top_alpha: transparence overlay haut (0-255)
+      overlay_mid_alpha: transparence overlay zone texte
+      overlay_bot_alpha: transparence overlay bas
+      text_color: couleur du texte (hex)
+      footer_color: couleur du footer
+    """
+    if brightness > 180:
+        # Fond très clair → overlay foncé fort
+        return {
+            "overlay_top_alpha": 200,
+            "overlay_mid_alpha": 120,
+            "overlay_bot_alpha": 200,
+            "text_color": "#e8e0d4",  # blanc cassé
+            "footer_color": "#aaa",
+            "text_shadow": True,
+        }
+    elif brightness > 100:
+        # Fond moyen → overlay modéré
+        return {
+            "overlay_top_alpha": 160,
+            "overlay_mid_alpha": 80,
+            "overlay_bot_alpha": 160,
+            "text_color": "#e8e0d4",
+            "footer_color": "#aaa",
+            "text_shadow": False,
+        }
+    else:
+        # Fond sombre → overlay léger
+        return {
+            "overlay_top_alpha": 100,
+            "overlay_mid_alpha": 30,
+            "overlay_bot_alpha": 100,
+            "text_color": "#e8e0d4",
+            "footer_color": "#aaa",
+            "text_shadow": False,
+        }
+
+
+# ============================================================
+#  FORMATS DISPONIBLES
+# ============================================================
+
+FORMATS = {
+    "whatsapp-status":  {"name": "WhatsApp Status", "w": 1080, "h": 1920, "ratio": "9:16",  "desc": "Status WhatsApp et stories Instagram"},
+    "instagram-square": {"name": "Instagram Carré",  "w": 1080, "h": 1080, "ratio": "1:1",  "desc": "Publication Instagram feed"},
+    "instagram-story":  {"name": "Instagram Story",  "w": 1080, "h": 1920, "ratio": "9:16",  "desc": "Story Instagram"},
+    "facebook-post":    {"name": "Facebook Post",    "w": 1200, "h": 630,  "ratio": "~2:1", "desc": "Partage Facebook"},
+    "twitter-banner":   {"name": "X Banner",         "w": 1500, "h": 500,  "ratio": "3:1",  "desc": "Bannière X / Twitter"},
+    "linkedin-post":    {"name": "LinkedIn Post",    "w": 1200, "h": 627,  "ratio": "~1.9:1", "desc": "Publication LinkedIn"},
+    "pinterest-pin":    {"name": "Pinterest Pin",    "w": 1000, "h": 1500, "ratio": "2:3",  "desc": "Pin Pinterest"},
+    "youtube-thumbnail":{"name": "YouTube Miniature", "w": 1280, "h": 720,  "ratio": "16:9", "desc": "Miniature YouTube"},
+    "og-card":          {"name": "OG Card",          "w": 1200, "h": 675,  "ratio": "16:9", "desc": "Aperçu lien Open Graph"},
+}
+
+
+# ============================================================
 #  MOTEUR DE LAYOUT DYNAMIQUE
 # ============================================================
 
@@ -115,9 +218,7 @@ class LayoutEngine:
     - Nombre de colonnes (selon ratio de l'image)
     - Tailles de police (selon W, H)
     - Hauteur de ligne (selon espace disponible)
-    - Espacement (selon densité d'items)
     """
-
     def __init__(self, W: int, H: int, nb_items: int):
         self.W = W
         self.H = H
@@ -125,33 +226,28 @@ class LayoutEngine:
         self.ratio = W / H
 
         # Nombre de colonnes selon le ratio
-        if self.ratio >= 2.5:      # Banner X (3:1) → 4 colonnes
+        if self.ratio >= 2.5:
             self.ncols = 4
-        elif self.ratio >= 1.7:    # Facebook, YouTube → 3 colonnes
+        elif self.ratio >= 1.7:
             self.ncols = 3
-        elif self.ratio >= 1.2:    # LinkedIn (1.9:1) → 3 colonnes
+        elif self.ratio >= 1.2:
             self.ncols = 3
-        elif self.ratio >= 0.6:    # 1:1, 9:16 → 2 colonnes
+        elif self.ratio >= 0.6:
             self.ncols = 2
-        else:                      # Pinterest (2:3) → 2 colonnes
+        else:
             self.ncols = 2
 
-        # Si trop peu d'items, réduire le nombre de colonnes
         max_ncols = min(self.ncols, nb_items)
         self.ncols = max(1, max_ncols)
 
-        # Hauteurs relatives
         self.header_pct = 0.18 if self.ratio < 1.0 else 0.22 if self.ratio < 2.0 else 0.30
         self.footer_pct = 0.07 if self.ratio < 1.0 else 0.10 if self.ratio < 2.0 else 0.14
 
         self.header_h = int(H * self.header_pct)
         self.footer_h = int(H * self.footer_pct)
-
-        # Espace disponible pour la liste
         self.avail_y = H - self.header_h - self.footer_h
-        # Marge horizontale
         self.margin_x = int(W * 0.04)
-        # Largeur de colonne
+
         if self.ncols > 1:
             self.gap_x = int(W * 0.03)
             self.col_w = (W - 2 * self.margin_x - (self.ncols - 1) * self.gap_x) // self.ncols
@@ -159,19 +255,13 @@ class LayoutEngine:
             self.gap_x = 0
             self.col_w = W - 2 * self.margin_x
 
-        # Items par colonne (équilibré)
         self.per_col = math.ceil(nb_items / self.ncols)
+        self.max_item_h = self.avail_y // self.per_col if self.per_col > 0 else self.avail_y
 
-        # Hauteur max dispo par item
-        self.max_item_h = self.avail_y // self.per_col
-
-        # Font sizes : calculées à partir des dimensions
-        # Référence : 1080×1920 → titre=82
         scale_w = W / 1080
         scale_h = H / 1920
-        scale = min(scale_w, scale_h)  # Facteur d'échelle général
+        scale = min(scale_w, scale_h)
 
-        # Tailles de police
         self.font_titre = max(20, int(82 * scale))
         self.font_sstitre = max(12, int(32 * scale))
         self.font_cat = max(16, int(44 * scale))
@@ -181,22 +271,15 @@ class LayoutEngine:
         self.font_footer = max(8, int(20 * scale))
         self.font_footer_bold = max(10, int(22 * scale))
 
-        # Hauteur de ligne pour chaque item
-        # Au moins assez grand pour nom + marque
         min_item_h = int(self.font_marque * 2 + self.font_nom * 1.4)
         self.item_h = max(min_item_h, self.max_item_h)
-        # Si item_h est trop grand, on réduit les fontes
         if self.item_h > min_item_h * 3:
             self.item_h = min_item_h * 2
-            # On réduit proportions
-            factor = math.sqrt(min_item_h * 2 / self.max_item_h)
+            factor = math.sqrt(min_item_h * 2 / max(1, self.max_item_h))
             self.font_nom = max(10, int(self.font_nom * factor))
             self.font_marque = max(8, int(self.font_marque * factor))
 
-        # Espacement vertical entre catégories
         self.gap_y = max(8, int(40 * scale))
-
-        # Position de départ Y
         self.start_y = self.header_h + int(H * 0.02)
 
     def get_fonts(self) -> dict:
@@ -212,17 +295,15 @@ class LayoutEngine:
         }
 
     def column_x(self, col_idx: int) -> int:
-        """Retourne la position X du début d'une colonne."""
         return self.margin_x + col_idx * (self.col_w + self.gap_x)
 
 
 # ============================================================
-#  DESSIN : EN-TÊTE
+#  DESSIN
 # ============================================================
 
-def _draw_header(draw, W, layout, gold):
+def _draw_header(draw, W, layout, gold, overlay_params):
     """Dessine l'en-tête gradué + titre."""
-    # Gradient d'en-tête
     for y in range(layout.header_h):
         progress = y / layout.header_h
         r = int(15 + (20 - 15) * progress)
@@ -230,10 +311,8 @@ def _draw_header(draw, W, layout, gold):
         b = int(25 + (40 - 25) * progress)
         draw.line([(0, y), (W, y)], fill=(r, g, b))
 
-    # Ligne dorée
     draw.line([(0, layout.header_h), (W, layout.header_h)], fill=gold, width=max(1, int(3 * W/1080)))
 
-    # Titre principal
     titre = "✦ COLLECTION PRIVÉE ✦"
     bbox = draw.textbbox((0, 0), titre, font=layout.get_fonts()["titre"])
     tw = bbox[2] - bbox[0]
@@ -241,27 +320,18 @@ def _draw_header(draw, W, layout, gold):
     ty = int(layout.header_h * 0.18)
     draw.text((tx, ty), titre, fill="#d4af37", font=layout.get_fonts()["titre"])
 
-    # Ligne décorative sous le titre
     mid_y = ty + layout.font_titre + int(10 * W/1080)
     line_len = max(40, int(120 * W/1080))
     draw.line([(W//2 - line_len//2, mid_y), (W//2 + line_len//2, mid_y)], fill=gold, width=max(1, int(2 * W/1080)))
 
-    # Sous-titre
     ss = "PARFUMERIE DE LUXE"
     bbox = draw.textbbox((0, 0), ss, font=layout.get_fonts()["sstitre"])
     sw = bbox[2] - bbox[0]
     draw.text(((W - sw) // 2, mid_y + int(8 * W/1080)), ss, fill="#c0b8a8", font=layout.get_fonts()["sstitre"])
 
 
-# ============================================================
-#  REDISTRIBUTION ÉQUILIBRÉE DES ITEMS DANS LES COLONNES
-# ============================================================
-
 def _distribuer_colonnes(hommes, femmes, mixtes, ncols):
-    """
-    Distribue TOUS les items de façon équilibrée entre les colonnes
-    (sans respecter les catégories).
-    """
+    """Distribue tous les items de façon équilibrée entre les colonnes."""
     tous = []
     for p in sorted(hommes, key=lambda x: (-x["stock"], x["nom"])):
         tous.append({"parfum": p, "cat": "HOMME"})
@@ -270,21 +340,17 @@ def _distribuer_colonnes(hommes, femmes, mixtes, ncols):
     for p in sorted(mixtes, key=lambda x: (-x["stock"], x["nom"])):
         tous.append({"parfum": p, "cat": "MIXTE"})
 
-    # Distribution équilibrée (round-robin)
     colonnes = [[] for _ in range(ncols)]
     for i, item in enumerate(tous):
         colonnes[i % ncols].append(item)
     return colonnes
 
 
-# ============================================================
-#  DESSIN : LISTE PARFUMS
-# ============================================================
-
-def _draw_liste(draw, layout, hommes, femmes, mixtes, gold):
-    """Dessine la liste des parfums avec layout adaptatif."""
+def _draw_liste(draw, layout, hommes, femmes, mixtes, gold, overlay_params):
+    """Dessine la liste des parfums avec texte adapté à la luminosité."""
     fonts = layout.get_fonts()
     colonnes = _distribuer_colonnes(hommes, femmes, mixtes, layout.ncols)
+    text_color = overlay_params["text_color"]
 
     for col_idx, items in enumerate(colonnes):
         if not items:
@@ -298,7 +364,6 @@ def _draw_liste(draw, layout, hommes, femmes, mixtes, gold):
             p = item["parfum"]
             cat = item["cat"]
 
-            # Titre de catégorie (uniquement si changement)
             if cat != prev_cat:
                 draw.text((x, y), cat, fill="#d4af37", font=fonts["cat"])
                 y += layout.font_cat + int(6 * layout.W/1080)
@@ -308,12 +373,11 @@ def _draw_liste(draw, layout, hommes, femmes, mixtes, gold):
             draw.text((x, y), p["marque"].upper(), fill="#d4af37", font=fonts["marque"])
             y += layout.font_marque + int(4 * layout.W/1080)
 
-            # Nom + badge stock bas
+            # Nom du parfum (couleur adaptée)
             nom = p["nom"]
             bbox = draw.textbbox((0, 0), nom, font=fonts["nom"])
             nw = bbox[2] - bbox[0]
 
-            # Tronquer si dépasse la colonne
             if nw > col_w - 40:
                 while nw > col_w - 40 and len(nom) > 3:
                     nom = nom[:-1]
@@ -321,7 +385,7 @@ def _draw_liste(draw, layout, hommes, femmes, mixtes, gold):
                     nw = bbox[2] - bbox[0]
                 nom += "…"
 
-            draw.text((x, y), nom, fill="#e8e0d4", font=fonts["nom"])
+            draw.text((x, y), nom, fill=text_color, font=fonts["nom"])
 
             if p["stock"] <= 2:
                 badge = f' ⚡x{p["stock"]}'
@@ -331,11 +395,7 @@ def _draw_liste(draw, layout, hommes, femmes, mixtes, gold):
             y += layout.item_h
 
 
-# ============================================================
-#  DESSIN : PIED DE PAGE
-# ============================================================
-
-def _draw_footer(draw, W, H, layout, gold):
+def _draw_footer(draw, W, H, layout, gold, overlay_params):
     """Dessine le footer."""
     fy = H - layout.footer_h
     line_y = fy + int(layout.footer_h * 0.10)
@@ -344,7 +404,7 @@ def _draw_footer(draw, W, H, layout, gold):
     f1 = "Disponibilité sous réserve de vente"
     bbox = draw.textbbox((0, 0), f1, font=layout.get_fonts()["footer"])
     fw = bbox[2] - bbox[0]
-    draw.text(((W - fw) // 2, line_y + int(12 * W/1080)), f1, fill="#aaa", font=layout.get_fonts()["footer"])
+    draw.text(((W - fw) // 2, line_y + int(12 * W/1080)), f1, fill=overlay_params["footer_color"], font=layout.get_fonts()["footer"])
 
     f2 = "@collection.privee"
     bbox = draw.textbbox((0, 0), f2, font=layout.get_fonts()["footer_bold"])
@@ -353,68 +413,105 @@ def _draw_footer(draw, W, H, layout, gold):
 
 
 # ============================================================
+#  OVERLAY ADAPTATIF
+# ============================================================
+
+def _apply_adaptive_overlay(img: Image.Image, layout, overlay_params) -> Image.Image:
+    """
+    Applique un overlay semi-transparent sur l'image.
+    L'intensité est adaptée à la luminosité du fond.
+    """
+    W, H = img.size
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+
+    top_a = overlay_params["overlay_top_alpha"]
+    mid_a = overlay_params["overlay_mid_alpha"]
+    bot_a = overlay_params["overlay_bot_alpha"]
+
+    # Overlay haut (gradient décroissant)
+    for y in range(layout.header_h + 30):
+        alpha = max(0, min(top_a, int(top_a * (1 - y / (layout.header_h + 30)))))
+        od.line([(0, y), (W, y)], fill=(0, 0, 0, alpha))
+
+    # Overlay zone centrale (constant subtil)
+    mid_start = layout.header_h + 30
+    mid_end = H - layout.footer_h - 30
+    for y in range(mid_start, mid_end):
+        if y % 2 == 0:
+            od.line([(0, y), (W, y)], fill=(0, 0, 0, mid_a))
+
+    # Overlay bas (gradient croissant)
+    for y in range(mid_end, H):
+        alpha = max(0, min(bot_a, int(bot_a * (y - mid_end) / (H - mid_end))))
+        od.line([(0, y), (W, y)], fill=(0, 0, 0, alpha))
+
+    return Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+
+
+# ============================================================
 #  GÉNÉRATION IA : FOND
 # ============================================================
 
 def _generate_ai_background(model: str, prompt: str, W: int, H: int) -> Optional[str]:
-    """
-    Génère un fond via l'IA choisie.
-    Retourne le chemin de l'image ou None en cas d'échec.
-    Pour le modèle 'custom', retourne le chemin du fond uploadé s'il existe.
-    """
-    import requests, tempfile
+    """Génère un fond via l'IA ou retourne le chemin d'un preset/custom."""
+    import requests
 
     if model == "pillow":
-        return None  # Pas d'IA, dessin manuel
+        return None
 
-    # Modèle "custom" = utiliser le fond uploadé par l'utilisateur
+    # Preset backgrounds
+    if model in PRESET_BACKGROUNDS:
+        path = PRESET_BACKGROUNDS[model]["path"]
+        if os.path.exists(path):
+            return path
+        return None
+
+    # Custom background (upload)
     if model == "custom":
         if os.path.exists(CUSTOM_BG_PATH):
             return CUSTOM_BG_PATH
         return None
 
-    native_w, native_h = 1024, 1024  # Taille native
+    native_w, native_h = 1024, 1024
 
+    # Cloudflare
     if model == "cloudflare":
         url = (f"https://api.cloudflare.com/client/v4/accounts/"
                f"{_CLOUDFLARE_ACCOUNT}/ai/run/"
                f"@cf/stabilityai/stable-diffusion-xl-base-1.0")
         headers = {"Authorization": f"Bearer {_CLOUDFLARE_TOKEN}", "Content-Type": "application/json"}
-        payload = {"prompt": prompt, "width": native_w, "height": native_h}
         try:
-            resp = requests.post(url, headers=headers, json=payload, timeout=60)
+            resp = requests.post(url, headers=headers, json={"prompt": prompt, "width": native_w, "height": native_h}, timeout=60)
             if resp.status_code == 200:
                 path = os.path.join(DIR, ".cache_bg.png")
-                with open(path, "wb") as f:
-                    f.write(resp.content)
+                with open(path, "wb") as f: f.write(resp.content)
                 return path
         except Exception:
             return None
 
-    elif model == "huggingface":
-        url = ("https://router.huggingface.co/hf-inference/models/"
-               "black-forest-labs/FLUX.1-schnell")
+    # Hugging Face
+    if model == "huggingface":
+        url = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
         headers = {"Authorization": f"Bearer {_HF_TOKEN}", "Content-Type": "application/json"}
-        payload = {"inputs": prompt, "parameters": {"width": native_w, "height": native_h}}
         try:
-            resp = requests.post(url, headers=headers, json=payload, timeout=90)
+            resp = requests.post(url, headers=headers, json={"inputs": prompt, "parameters": {"width": native_w, "height": native_h}}, timeout=90)
             if resp.status_code == 200:
                 path = os.path.join(DIR, ".cache_bg.png")
-                with open(path, "wb") as f:
-                    f.write(resp.content)
+                with open(path, "wb") as f: f.write(resp.content)
                 return path
         except Exception:
             return None
 
-    elif model == "pollinations":
+    # Pollinations
+    if model == "pollinations":
         url = (f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt)}"
                f"?width={native_w}&height={native_h}&nologo=true")
         try:
             resp = requests.get(url, timeout=60)
             if resp.status_code == 200:
                 path = os.path.join(DIR, ".cache_bg.png")
-                with open(path, "wb") as f:
-                    f.write(resp.content)
+                with open(path, "wb") as f: f.write(resp.content)
                 return path
         except Exception:
             return None
@@ -434,8 +531,8 @@ def generate(output_path: str = OUTPUT, format_name: str = "whatsapp-status",
     Args:
         output_path: Chemin de sortie
         format_name: Clé dans FORMATS
-        model: "pillow" | "cloudflare" | "huggingface" | "pollinations"
-        ai_prompt: Prompt pour l'IA (ignoré si model="pillow")
+        model: "pillow" | "custom" | "cloudflare" | "huggingface" | "pollinations" | "bg-*"
+        ai_prompt: Prompt pour l'IA (ignoré si model="pillow" ou preset/custom)
     """
     fmt = FORMATS.get(format_name)
     if not fmt:
@@ -452,28 +549,29 @@ def generate(output_path: str = OUTPUT, format_name: str = "whatsapp-status",
     gold = (212, 175, 55)
     layout = LayoutEngine(W, H, len(dispos))
 
-    # --- Fond : IA ou Pillow ---
+    # --- Fond ---
     bg_path = None
     if model != "pillow":
-        if not ai_prompt:
-            # Prompt par défaut selon le format
-            if format_name in ("whatsapp-status", "instagram-story", "pinterest-pin", "instagram-square"):
-                ai_prompt = ("Luxury perfume background, dark navy and black gradient, "
-                            "elegant golden geometric lines, subtle sparkle particles, "
-                            "warm amber glow, velvet texture, premium fragrance advertising, "
-                            "negative space in center, no text, no bottles")
-            elif format_name in ("twitter-banner", "facebook-post", "linkedin-post"):
-                ai_prompt = ("Luxury perfume banner, dark gold and mahogany tones, "
-                            "elegant arabesque patterns, warm amber lighting, "
-                            "premium fragrance advertising, 8K, no text, no bottles")
-            else:
-                ai_prompt = ("Luxury perfume background, dark elegant tones, "
-                            "gold accents, sophisticated atmosphere, "
-                            "negative space, no text, no bottles")
+        if model not in PRESET_BACKGROUNDS and model != "custom":
+            # IA need a prompt
+            if not ai_prompt:
+                if format_name in ("whatsapp-status", "instagram-story", "pinterest-pin", "instagram-square"):
+                    ai_prompt = ("Luxury perfume background, dark navy and black gradient, "
+                                "elegant golden geometric lines, subtle sparkle particles, "
+                                "warm amber glow, velvet texture, premium fragrance advertising, "
+                                "negative space in center, no text, no bottles")
+                elif format_name in ("twitter-banner", "facebook-post", "linkedin-post"):
+                    ai_prompt = ("Luxury perfume banner, dark gold and mahogany tones, "
+                                "elegant arabesque patterns, warm amber lighting, "
+                                "premium fragrance advertising, 8K, no text, no bottles")
+                else:
+                    ai_prompt = ("Luxury perfume background, dark elegant tones, "
+                                "gold accents, sophisticated atmosphere, "
+                                "negative space, no text, no bottles")
 
         bg_path = _generate_ai_background(model, ai_prompt, W, H)
 
-    # --- Création de l'image ---
+    # Création de l'image de fond
     if bg_path and os.path.exists(bg_path):
         try:
             bg = Image.open(bg_path).convert("RGB")
@@ -482,7 +580,6 @@ def generate(output_path: str = OUTPUT, format_name: str = "whatsapp-status",
         except Exception:
             img = Image.new("RGB", (W, H), (15, 15, 25))
     else:
-        # Fallback : fond dégradé progressive
         img = Image.new("RGB", (W, H), (15, 15, 25))
         gradient = ImageDraw.Draw(img)
         for y in range(H):
@@ -492,36 +589,30 @@ def generate(output_path: str = OUTPUT, format_name: str = "whatsapp-status",
             b = int(20 + (45 - 20) * progress)
             gradient.line([(0, y), (W, y)], fill=(r, g, b))
 
+    # --- Détection de luminosité ---
+    brightness = 128  # Valeur par défaut
+    if bg_path and os.path.exists(bg_path):
+        brightness_hint = None
+        if model in PRESET_BACKGROUNDS:
+            brightness_hint = PRESET_BACKGROUNDS[model].get("brightness_hint")
+        brightness = _detect_brightness(bg_path, brightness_hint)
+
+    overlay_params = _calc_overlay_params(brightness)
+
+    # --- Overlay adaptatif ---
+    img = _apply_adaptive_overlay(img, layout, overlay_params)
     draw = ImageDraw.Draw(img)
 
-    # --- Overlay semi-transparent pour lisibilité ---
-    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    overlay_draw = ImageDraw.Draw(overlay)
-    # Top overlay
-    for y in range(layout.header_h + 30):
-        alpha = max(0, min(200, int(200 * (1 - y / (layout.header_h + 30)))))
-        overlay_draw.line([(0, y), (W, y)], fill=(0, 0, 0, alpha))
-    # Bottom overlay
-    bottom_start = H - layout.footer_h - 30
-    for y in range(bottom_start, H):
-        alpha = max(0, min(200, int(200 * (y - bottom_start) / (H - bottom_start))))
-        overlay_draw.line([(0, y), (W, y)], fill=(0, 0, 0, alpha))
-    # Central subtle overlay
-    for y in range(layout.header_h + 30, H - layout.footer_h - 30):
-        if y % 2 == 0:  # 1 ligne sur 2 pour économie
-            overlay_draw.line([(0, y), (W, y)], fill=(0, 0, 0, 30))
-    img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
-    draw = ImageDraw.Draw(img)
-
-    # --- Header + liste + footer ---
-    _draw_header(draw, W, layout, gold)
-    _draw_liste(draw, layout, hommes, femmes, mixtes, gold)
-    _draw_footer(draw, W, H, layout, gold)
+    # --- Elements ---
+    _draw_header(draw, W, layout, gold, overlay_params)
+    _draw_liste(draw, layout, hommes, femmes, mixtes, gold, overlay_params)
+    _draw_footer(draw, W, H, layout, gold, overlay_params)
 
     # --- Sauvegarde ---
     img.save(output_path, "JPEG", quality=95)
     model_label = MODELS.get(model, {}).get("name", model)
-    print(f"🖼️  Visuel généré [{fmt['name']}] [{model_label}] : {output_path} ({W}×{H})")
+    print(f"🖼️  Visuel généré [{fmt['name']}] [{model_label}] : {output_path} ({W}×{H}) "
+          f"[luminosité fond: {brightness:.0f}/255]")
     return output_path
 
 
