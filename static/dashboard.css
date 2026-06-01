@@ -87,6 +87,7 @@
     .form-group input,.form-group select,.form-group textarea{background:rgba(255,255,255,0.04);border:1px solid rgba(212,175,55,0.15);border-radius:8px;padding:10px 14px;color:#e8e0d4;font-family:Inter,sans-serif;font-size:.9em;outline:none;transition:all .2s}
     .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#d4af37;background:rgba(255,255,255,0.07)}
     .form-group select option{background:#1a1a2e;color:#e8e0d4}
+    select option{background:#1a1a2e;color:#e8e0d4}
     .form-group textarea{resize:vertical;min-height:60px}
     .modal-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px;padding-top:16px;border-top:1px solid rgba(212,175,55,0.1)}
     .modal-actions button{padding:10px 28px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.9em;transition:all .2s}
