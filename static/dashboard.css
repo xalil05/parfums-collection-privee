@@ -125,7 +125,7 @@
     .prompt-tab:hover,.prompt-tab.active{border-color:#d4af37;color:#d4af37;background:rgba(212,175,55,0.08)}
     .prompt-content{display:none}
     .prompt-content.active{display:block}
-    .prompt-box{background:rgba(0,0,0,0.3);border:1px solid rgba(212,175,55,0.1);border-radius:8px;padding:14px;font-size:.8em;line-height:1.5;color:#c0b8a8;position:relative;max-height:200px;overflow-y:auto;word-break:break-word}
+    .prompt-box{background:rgba(0,0,0,0.3);border:1px solid rgba(212,175,55,0.1);border-radius:8px;padding:14px;font-size:.8em;line-height:1.5;color:#c0b8a8;position:relative;max-height:360px;overflow-y:auto;word-break:break-word;white-space:pre-wrap}
     .prompt-box .copy-btn{position:absolute;top:8px;right:8px;background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.2);color:#d4af37;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:.7em;transition:all .2s}
     .prompt-box .copy-btn:hover{background:rgba(212,175,55,0.25)}
     .prompt-extra{display:flex;gap:12px;margin-top:10px;font-size:.75em;color:#6b6360;flex-wrap:wrap}

@@ -44,10 +44,13 @@ _load_credentials()
 
 MODELS = {
     "pillow": {"name": "Pillow (dessin manuel)", "desc": "Pas d'IA, texte sur fond dégradé"},
+    "custom": {"name": "Mon fond", "desc": "Utilise ton propre fond (upload depuis le dashboard)"},
     "cloudflare": {"name": "Cloudflare SDXL", "desc": "IA gratuite, ~10-20 img/jour, bonne qualité"},
     "huggingface": {"name": "Hugging Face FLUX", "desc": "IA gratuite, FLUX.1-schnell, excellente qualité"},
     "pollinations": {"name": "Pollinations", "desc": "IA gratuite, illimité, qualité standard"},
 }
+
+CUSTOM_BG_PATH = os.path.join(DIR, "custom-bg.jpg")
 
 
 # ============================================================
@@ -357,11 +360,18 @@ def _generate_ai_background(model: str, prompt: str, W: int, H: int) -> Optional
     """
     Génère un fond via l'IA choisie.
     Retourne le chemin de l'image ou None en cas d'échec.
+    Pour le modèle 'custom', retourne le chemin du fond uploadé s'il existe.
     """
     import requests, tempfile
 
     if model == "pillow":
         return None  # Pas d'IA, dessin manuel
+
+    # Modèle "custom" = utiliser le fond uploadé par l'utilisateur
+    if model == "custom":
+        if os.path.exists(CUSTOM_BG_PATH):
+            return CUSTOM_BG_PATH
+        return None
 
     native_w, native_h = 1024, 1024  # Taille native
 

@@ -328,13 +328,55 @@ def api_formats():
 @app.route("/api/models")
 def api_models():
     """Liste des modèles IA disponibles."""
-    from img_gen import MODELS
-    return jsonify(MODELS)
+    from img_gen import MODELS, CUSTOM_BG_PATH
+    data = dict(MODELS)
+    # Ajouter info si un custom background est uploadé
+    if os.path.exists(CUSTOM_BG_PATH):
+        data["custom"]["has_bg"] = True
+        data["custom"]["bg_path"] = "/api/custom-background"
+    else:
+        data["custom"]["has_bg"] = False
+    return jsonify(data)
+
+
+@app.route("/api/upload-background", methods=["POST"])
+def api_upload_background():
+    """Upload d'un fond personnalisé."""
+    from img_gen import CUSTOM_BG_PATH
+    if "file" not in request.files:
+        return jsonify({"error": "Aucun fichier fourni"}), 400
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "Fichier vide"}), 400
+    try:
+        file.save(CUSTOM_BG_PATH)
+        return jsonify({"success": True, "message": "Fond uploadé ! Utilise le modèle 'Mon fond' pour l'utiliser."})
+    except Exception as e:
+        return jsonify({"error": f"Erreur upload : {e}"}), 500
+
+
+@app.route("/api/custom-background")
+def api_custom_background():
+    """Retourne le fond personnalisé uploadé."""
+    from img_gen import CUSTOM_BG_PATH
+    if os.path.exists(CUSTOM_BG_PATH):
+        return send_from_directory(os.path.dirname(CUSTOM_BG_PATH), os.path.basename(CUSTOM_BG_PATH), mimetype="image/jpeg")
+    return jsonify({"error": "Aucun fond uploadé"}), 404
+
+
+@app.route("/api/delete-background", methods=["POST"])
+def api_delete_background():
+    """Supprime le fond personnalisé uploadé."""
+    from img_gen import CUSTOM_BG_PATH
+    if os.path.exists(CUSTOM_BG_PATH):
+        os.remove(CUSTOM_BG_PATH)
+        return jsonify({"success": True, "message": "Fond supprimé"})
+    return jsonify({"error": "Aucun fond à supprimer"}), 404
 
 
 @app.route("/api/prompts")
 def api_prompts():
-    """Génère des prompts IA pour générateurs d'images."""
+    """Génère des prompts IA pour générateurs d'images, INCLUS les parfums disponibles."""
     db = load_db()
     parfums = db.get("parfums", [])
     dispos = [p for p in parfums if p["stock"] > 0]
@@ -354,6 +396,23 @@ def api_prompts():
     marques = list(set(p["marque"] for p in dispos))
     top_marques = marques[:5]
 
+    # --- Générer la liste formatée des parfums ---
+    def _format_liste(items):
+        return "\n".join(f"  • {p['marque']} — {p['nom']} ({p['type']}, {p['ml']}ml){' ✨' if p['stock'] <= 2 else ''}" for p in items)
+
+    liste_hommes = _format_liste(hommes)
+    liste_femmes = _format_liste(femmes)
+    liste_mixtes = _format_liste(mixtes)
+
+    liste_complete = f"""━━ HOMME ━━
+{liste_hommes or '  (aucun)'}
+
+━━ FEMME ━━
+{liste_femmes or '  (aucun)'}
+
+━━ MIXTE / UNISEXE ━━
+{liste_mixtes or '  (aucun)'}"""
+
     def _prompt_vibe(categorie, items, notes):
         items_str = " · ".join(p["nom"] for p in items[:5])
         notes_str = ", ".join(notes)
@@ -370,58 +429,113 @@ def api_prompts():
         _prompt_vibe("Mixte / Unisexe", mixtes, ["Oud", "Ambre", "Musc", "Safran", "Rose"]),
     ]
 
-    # Prompts dédiés
+    # Construire les prompts enrichis avec la liste des parfums
+    n_stock = sum(p["stock"] for p in dispos)
+    header_stats = f"Collection Privée — {len(dispos)} parfums · {n_stock} unités en stock · Notes : {', '.join(notes_top)}"
+
     prompts = {
         "generaux": [
             {
                 "plateforme": "Google ImageFX / Imagen",
                 "style": "Photorealistic — Fond luxueux",
-                "prompt": f"Ultra-realistic perfume collection background, dark mahogany and amber tones, elegant gold arabesque geometric patterns, subtle oud smoke wisps, scattered gold dust particles, velvet texture, warm ambient candlelight, sophisticated luxury fragrance presentation, 8K photorealistic commercial photography, negative space in center for text overlay, no text, no bottles",
+                "prompt": f"""[BACKGROUND PROMPT — à coller dans ImageFX]
+Ultra-realistic luxury perfume collection background, dark mahogany and amber tones, elegant gold arabesque geometric patterns, subtle oud smoke wisps, scattered gold dust particles, velvet texture, warm ambient candlelight, sophisticated luxury fragrance presentation, 8K photorealistic commercial photography, negative space in center for text overlay, no text, no bottles
+
+━━ LISTE PARFUMS À AJOUTER ━━
+{liste_complete}
+
+{header_stats}""",
             },
             {
                 "plateforme": "Midjourney",
-                "style": "Artistique — Ambiance orientale",
-                "prompt": f"Luxury perfume boutique interior, dark navy and gold color scheme, opulent arabesque patterns, warm amber lighting, floating gold particles, velvet drapes, premium fragrance collection display, soft cinematic bokeh, rich textures, elegant and sophisticated mood --ar 9:16 --style raw --v 6",
+                "style": "Artistique — Ambiance orientale chic",
+                "prompt": f"""[Midjourney Prompt]
+Luxury perfume boutique interior, dark navy and gold color scheme, opulent arabesque patterns, warm amber lighting, floating gold particles, velvet drapes, premium fragrance collection display, soft cinematic bokeh, rich textures, elegant and sophisticated mood --ar 9:16 --style raw --v 6
+
+COLLECTION :
+{liste_complete}
+
+{header_stats}""",
             },
             {
                 "plateforme": "DALL·E 3",
-                "style": "Moderne minimaliste",
-                "prompt": f"Minimalist luxury perfume background, dark gradient from navy to black, subtle gold foil geometric accents, elegant minimal composition, soft warm glow from below, premium cosmetic advertising style, clean and sophisticated, negative space for text, 16:9 aspect ratio",
+                "style": "Minimaliste chic & glamour",
+                "prompt": f"""[DALL·E 3]
+Minimalist luxury perfume background, dark gradient from navy to black, subtle gold foil geometric accents, elegant minimal composition, soft warm glow from below, premium cosmetic advertising style, clean and sophisticated
+
+PARFUMS DISPONIBLES :
+{liste_complete}
+
+{header_stats}""",
             },
             {
                 "plateforme": "Stable Diffusion / FLUX",
-                "style": "Sombre & Dramatique",
-                "prompt": f"(masterpiece:1.2), (photorealistic:1.3), dark luxury perfume collection, mahogany wood texture, gold leaf accents, smoke wisps, amber glow, velvet background, sophisticated fragrance advertising, 8K, dramatic lighting, rich deep colors, negative space centered, no text",
+                "style": "Sombre & Dramatique — Luxe absolu",
+                "prompt": f"""[Stable Diffusion / FLUX Prompt]
+(masterpiece:1.2), (photorealistic:1.3), dark luxury perfume collection, mahogany wood texture, gold leaf accents, smoke wisps, amber glow, velvet background, sophisticated fragrance advertising, 8K, dramatic lighting, rich deep colors, negative space centered, no text
+
+PARFUMS :
+{liste_complete}
+
+{header_stats}""",
             },
         ],
         "par_categorie": [
             {
                 "categorie": "Homme 💼",
-                "prompt": f"Dark and sophisticated men's perfume collection, rich wood textures, leather accents, amber and tobacco tones, black and gold color scheme, masculine elegance, premium fragrance advertising, 8K photorealistic, dramatic chiaroscuro lighting, luxury lifestyle photography, centered composition for text overlay, no perfume bottles",
+                "prompt": f"""[FOND Homme — Collection Privée]
+Dark and sophisticated men's perfume collection, rich wood textures, leather accents, amber and tobacco tones, black and gold color scheme, masculine elegance, premium fragrance advertising, 8K photorealistic, dramatic chiaroscuro lighting, luxury lifestyle photography
+
+PARFUMS HOMME DISPONIBLES :
+{liste_hommes}""",
                 "marques": top_marques[:3],
             },
             {
                 "categorie": "Femme 👗",
-                "prompt": f"Elegant women's luxury perfume collection, soft pink and rose gold tones, floral accents, vanilla and gourmand warmth, silk and velvet textures, feminine sophistication, premium beauty editorial style, soft dreamy lighting, 8K commercial photography, delicate and refined atmosphere, centered composition for text",
+                "prompt": f"""[FOND Femme — Collection Privée]
+Elegant women's luxury perfume collection, soft pink and rose gold tones, floral accents, vanilla and gourmand warmth, silk and velvet textures, feminine sophistication, premium beauty editorial style, soft dreamy lighting, 8K commercial photography
+
+PARFUMS FEMME DISPONIBLES :
+{liste_femmes}""",
                 "marques": top_marques[:3],
             },
             {
                 "categorie": "Mixte / Unisexe 🔀",
-                "prompt": f"Modern unisex luxury fragrance collection, amber and oud tones, warm golden hour lighting, contemporary minimal aesthetic, marble and brass textures, sophisticated and inclusive vibe, premium editorial perfume photography, 8K, balanced masculine and feminine elements, centered negative space for text overlay",
+                "prompt": f"""[FOND Mixte — Collection Privée]
+Modern unisex luxury fragrance collection, amber and oud tones, warm golden hour lighting, contemporary minimal aesthetic, marble and brass textures, sophisticated and inclusive vibe, premium editorial perfume photography, 8K
+
+PARFUMS MIXTES DISPONIBLES :
+{liste_mixtes}""",
                 "marques": top_marques[:3],
             },
         ],
         "whatsapp_status": [
             {
-                "plateforme": "Fond pour visuel WhatsApp (9:16)",
-                "style": "Luxueux sombre",
-                "prompt": f"Luxury perfume background for WhatsApp status, 9:16 vertical format, dark navy to black gradient, elegant golden geometric lines, subtle sparkle particles, warm amber glow at center, premium fragrance advertising style, velvet texture, 8K, sophisticated and exclusive mood, large empty space in center for perfume list text overlay, no perfume bottles, no text",
+                "plateforme": "Fond WhatsApp Status (9:16)",
+                "style": "Luxueux sombre — Liste complète",
+                "prompt": f"""[WHATSAPP STATUS — Fond + Liste]
+Luxury perfume background for WhatsApp status, 9:16 vertical format, dark navy to black gradient, elegant golden geometric lines, subtle sparkle particles, warm amber glow at center, premium fragrance advertising style, velvet texture, 8K, sophisticated and exclusive mood, large empty space in center for perfume list text overlay, no perfume bottles, no text
+
+LISTE PARFUMS À SUPERPOSER :
+{liste_complete}
+
+{header_stats}""",
             },
         ],
+        "parfums_liste": {
+            "complete": liste_complete,
+            "hommes": liste_hommes,
+            "femmes": liste_femmes,
+            "mixtes": liste_mixtes,
+            "total": len(dispos),
+            "stock_total": n_stock,
+            "notes_dominantes": notes_top,
+            "marques": top_marques,
+        },
         "vibes": vibes,
         "stats": {
             "total_parfums": len(dispos),
-            "total_stock": sum(p["stock"] for p in dispos),
+            "total_stock": n_stock,
             "marques": top_marques,
             "notes_dominantes": notes_top if notes_top else ["Vanille", "Ambre"],
         },

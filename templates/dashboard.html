@@ -105,6 +105,14 @@
         <div id="aiPromptWrap" style="display:none;margin-bottom:8px">
           <textarea id="aiPromptInput" placeholder="Prompt personnalisé pour l'IA (optionnel, laisse vide pour auto)" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(212,175,55,0.15);border-radius:8px;padding:10px 14px;color:#e8e0d4;font-family:Inter,sans-serif;font-size:.8em;outline:none;resize:vertical;min-height:40px" rows="2"></textarea>
         </div>
+        <div id="customBgWrap" style="display:none;margin-bottom:10px">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px;background:rgba(212,175,55,0.05);border-radius:8px;border:1px dashed rgba(212,175,55,0.3)">
+            <input type="file" id="bgFileInput" accept="image/*" style="flex:1;color:#e8e0d4;font-size:.8em">
+            <button class="btn-gold" onclick="uploaderFond()" style="font-size:.8em;padding:8px 16px">📤 Upload</button>
+            <button class="btn-outline" onclick="supprimerFond()" style="font-size:.8em;padding:8px 16px;display:none" id="btnDeleteBg">🗑 Supprimer</button>
+          </div>
+          <div id="customBgPreview" style="margin-top:8px;font-size:.75em;color:#6b6360"></div>
+        </div>
         <div id="formatInfo" style="font-size:.75em;color:#6b6360;margin-bottom:10px;min-height:20px"></div>
         <div class="preview-placeholder" id="visuelPreview">
           <span>Choisis un format et clique sur Générer</span>
@@ -499,8 +507,65 @@ function changerModele(sel) {
   modelActuel = sel.value;
   afficherInfoModele(modelActuel);
   // Afficher le champ prompt si IA, cacher si Pillow
-  const wrap = document.getElementById('aiPromptWrap');
-  wrap.style.display = (modelActuel === 'pillow') ? 'none' : 'block';
+  const promptWrap = document.getElementById('aiPromptWrap');
+  promptWrap.style.display = (modelActuel === 'pillow') ? 'none' : (modelActuel === 'custom' ? 'none' : 'block');
+  // Afficher l'upload si custom
+  const bgWrap = document.getElementById('customBgWrap');
+  bgWrap.style.display = (modelActuel === 'custom') ? 'block' : 'none';
+  if (modelActuel === 'custom') {
+    verifierFond();
+  }
+}
+
+async function verifierFond() {
+  try {
+    const res = await fetch('/api/models');
+    const models = await res.json();
+    const custom = models.custom;
+    const preview = document.getElementById('customBgPreview');
+    const delBtn = document.getElementById('btnDeleteBg');
+    if (custom.has_bg) {
+      preview.innerHTML = `<span style="color:#2ed573">✅ Fond personnalisé chargé</span>`;
+      delBtn.style.display = 'inline-block';
+    } else {
+      preview.innerHTML = `<span style="color:#ffa502">⚠️ Aucun fond uploadé. Choisis une image et clique sur Upload.</span>`;
+      delBtn.style.display = 'none';
+    }
+  } catch (e) {
+    console.error('Erreur vérification fond:', e);
+  }
+}
+
+async function uploaderFond() {
+  const input = document.getElementById('bgFileInput');
+  if (!input.files || !input.files[0]) {
+    toast('❌ Sélectionne une image d\'abord', 'error');
+    return;
+  }
+  const formData = new FormData();
+  formData.append('file', input.files[0]);
+  try {
+    const res = await fetch('/api/upload-background', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.error) { toast('❌ ' + data.error, 'error'); return; }
+    toast('✅ ' + data.message, 'success');
+    verifierFond();
+  } catch (e) {
+    toast('❌ Erreur upload: ' + e.message, 'error');
+  }
+}
+
+async function supprimerFond() {
+  try {
+    const res = await fetch('/api/delete-background', { method: 'POST' });
+    const data = await res.json();
+    if (data.error) { toast('❌ ' + data.error, 'error'); return; }
+    toast('🗑️ ' + data.message, 'success');
+    document.getElementById('bgFileInput').value = '';
+    verifierFond();
+  } catch (e) {
+    toast('❌ Erreur: ' + e.message, 'error');
+  }
 }
 
 function afficherInfoModele(key) {
@@ -526,10 +591,9 @@ async function genererVisuel() {
   btn.innerHTML = '<span class="gen-loading"></span> Génération...';
   preview.innerHTML = '<span class="gen-loading"></span> Génération...';
 
-  // Build URL with format + model + optional prompt
   let url = `/api/generate-visuel-preview?format=${formatActuel}&model=${modelActuel}`;
   const promptInput = document.getElementById('aiPromptInput');
-  if (promptInput && promptInput.value.trim()) {
+  if (promptInput && promptInput.value.trim() && modelActuel !== 'custom') {
     url += `&prompt=${encodeURIComponent(promptInput.value.trim())}`;
   }
 
