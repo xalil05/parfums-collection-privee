@@ -364,6 +364,7 @@ def api_bg_thumbnail(preset_key: str):
     if not os.path.exists(path):
         return jsonify({"error": "Fichier non trouvé"}), 404
     try:
+        from PIL import Image
         img = Image.open(path)
         img.thumbnail((200, 200), Image.LANCZOS)
         buf = io.BytesIO()
